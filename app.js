@@ -349,44 +349,47 @@ async function buscarHotspotsActivos() {
         btn.innerText = "Error de conexión";
     }
 }
-// Función para activar la ruta y el seguimiento hacia el hotspot seleccionado
+// Variable global para controlar el seguimiento en vivo
+let watchId = null;
+
 function iniciarRutaHacia(lng, lat, nombreDestino) {
-    // 1. Configurar la ruta en Mapbox Directions
+    // 1. Configurar la ruta en el panel de Mapbox Directions
     if (typeof directions !== 'undefined') {
         navigator.geolocation.getCurrentPosition((pos) => {
-            const uLng = pos.coords.longitude;
-            const uLat = pos.coords.latitude;
-            directions.setOrigin([uLng, uLat]);
+            directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
             directions.setDestination([lng, lat]);
         }, () => {
             directions.setDestination([lng, lat]);
         });
     }
 
-    // 2. Perspectiva 3D inclinada (pitch 60°) y acercamiento
+    // 2. Limpiar rastreo anterior si existía
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+    }
+
+    // 3. Activar seguimiento en tiempo real (Tracking GPS + Vista 3D Waze)
     if (typeof map !== 'undefined') {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            map.flyTo({
-                center: [pos.coords.longitude, pos.coords.latitude],
-                zoom: 17.5,
-                pitch: 60,
-                bearing: 0,
-                essential: true,
-                duration: 2000
-            });
-        }, () => {
-            map.flyTo({
-                center: [lng, lat],
-                zoom: 17.5,
-                pitch: 60,
-                bearing: 0,
-                essential: true,
-                duration: 2000
-            });
-        });
-    }
+        watchId = navigator.geolocation.watchPosition((position) => {
+            const userLng = position.coords.longitude;
+            const userLat = position.coords.latitude;
+            const heading = position.coords.heading || 0;
 
-    if (typeof geolocateControl !== 'undefined') {
-        geolocateControl.trigger();
+            map.easeTo({
+                center: [userLng, userLat],
+                zoom: 18,
+                pitch: 65,
+                bearing: heading,
+                duration: 800,
+                easing: (t) => t,
+                essential: true
+            });
+        }, (error) => {
+            console.log("Error GPS en vivo:", error);
+        }, {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
+        });
     }
 }

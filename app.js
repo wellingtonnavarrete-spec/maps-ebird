@@ -37,6 +37,15 @@ const map = new mapboxgl.Map({
     antialias: true // Mejora los bordes en 3D
 });
 
+map.on('style.load', () => {
+    // Buscar todas las capas de texto del mapa base y agrandarlas
+    const layers = map.getStyle().layers;
+    for (const layer of layers) {
+        if (layer.type === 'symbol' && layer.layout['text-field']) {
+            map.setLayoutProperty(layer.id, 'text-size', 16); // Tamaño gigante
+        }
+    }
+});
 // --- NUEVO: Control de Navegación (Rutas) ---
 const directions = new MapboxDirections({
     accessToken: mapboxgl.accessToken,

@@ -14,7 +14,11 @@
 </head>
 <body>
     <div id="map"></div>
-
+<!-- Barra de búsqueda y centrado de ubicación -->
+<div class="top-controls" style="position: absolute; top: 15px; left: 15px; z-index: 10; display: flex; gap: 8px;">
+    <input type="text" placeholder="🔍 Buscar hotspot..." oninput="buscarHotspotPorNombre(this.value)" style="padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; outline: none; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+    <button onclick="centrarUbicacion()" style="padding: 8px 14px; border-radius: 20px; border: none; background: #ffffff; cursor: pointer; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">🎯 Mi Ubicación</button>
+</div>
     <!-- NUEVO: Botón de Radar de Actividad -->
     <button id="btn-radar" onclick="buscarHotspotsActivos()">
         🔥 Ver activos (Últimos 7 días)

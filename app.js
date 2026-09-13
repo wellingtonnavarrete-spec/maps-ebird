@@ -518,7 +518,6 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     }
   }
 }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
-}
 
 function salirNavegacion() {
     const hud = document.getElementById('nav-hud');

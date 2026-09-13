@@ -472,11 +472,58 @@ function centrarUbicacion() {
     }
 }
 
-// 2. Alternar entre estilos de mapa (ej: 'satellite-streets-v12', 'outdoors-v12', 'dark-v11')
-function cambiarEstiloMapa(estiloId) {
-    if (map) {
-        map.setStyle(`mapbox://styles/mapbox/${estiloId}`);
-    }
+// 2. Alternar entre estilos de mapa ('streets' vs 'satellite')
+let estiloMapaActual = 'satellite';
+
+function cambiarEstiloMapa(tipo) {
+    if (tipo === estiloMapaActual || !map) return;
+    estiloMapaActual = tipo;
+
+    // Actualizar botones UI
+    const btnStreets = document.getElementById('btn-style-streets');
+    const btnSatellite = document.getElementById('btn-style-satellite');
+    if (btnStreets) btnStreets.classList.toggle('active', tipo === 'streets');
+    if (btnSatellite) btnSatellite.classList.toggle('active', tipo === 'satellite');
+
+    // Mapear estilos de Mapbox
+    const estiloUrl = tipo === 'streets' 
+        ? 'mapbox://styles/mapbox/outdoors-v12' 
+        : 'mapbox://styles/mapbox/satellite-streets-v12';
+
+    map.setStyle(estiloUrl);
+
+    // Reconstruir la capa de hotspots al cargar el nuevo estilo
+    map.once('style.load', () => {
+        const features = (typeof hotspotsDataGlobal !== 'undefined' && hotspotsDataGlobal) 
+            ? hotspotsDataGlobal.map(h => ({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
+                properties: { locId: h.locId, locName: h.locName }
+            })) 
+            : [];
+
+        if (!map.getSource('ebird-hotspots')) {
+            map.addSource('ebird-hotspots', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: features },
+                cluster: false
+            });
+        }
+
+        if (!map.getLayer('unclustered-point')) {
+            map.addLayer({
+                id: 'unclustered-point',
+                type: 'circle',
+                source: 'ebird-hotspots',
+                paint: {
+                    'circle-color': '#00b4d8',
+                    'circle-radius': 6,
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#ffffff'
+                }
+            });
+        }
+    });
 }
 
 // 3. Filtrar los puntos del mapa en tiempo real según la búsqueda de un input text

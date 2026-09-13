@@ -546,3 +546,23 @@ body {
 .map-style-btn:active {
     transform: scale(0.94);
 }
+/* Quita el fondo transparente del contenedor superior de navegación */
+.mapboxgl-ctrl-top-center,
+.mapboxgl-ctrl-top-left,
+.mapbox-directions-instructions,
+.directions-control-instructions,
+#nav-hud {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+}
+
+/* Forzar que solo la tarjeta verde conserve su diseño compacto */
+.directions-control-step {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}

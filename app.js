@@ -255,3 +255,47 @@ async function cargarObservaciones(locId) {
 function cerrarPanel() {
     document.getElementById('side-panel').classList.remove('panel-open');
 }
+// --- NUEVA FUNCIÓN: Resaltar Hotspots Activos ---
+async function buscarHotspotsActivos() {
+    const btn = document.getElementById('btn-radar');
+    
+    // Si ya está activo, lo apagamos y volvemos al azul original
+    if (btn.classList.contains('activo')) {
+        map.setPaintProperty('unclustered-point', 'circle-color', '#11b4da');
+        btn.classList.remove('activo');
+        btn.innerText = "🔥 Ver activos (Últimos 3 días)";
+        return;
+    }
+
+    btn.innerText = "Buscando...";
+
+    try {
+        // Traemos todas las observaciones de la región de los últimos 3 días (back=3)
+        // Nota: Asegúrate de que regionCode esté definido como 'CL-AR' al inicio de tu app.js
+        const response = await fetch(`https://api.ebird.org/v2/data/obs/CL-AR/recent?back=3`, {
+            headers: { 'X-eBirdApiToken': ebirdApiKey }
+        });
+        const observaciones = await response.json();
+
+        // Filtramos para obtener solo una lista con los IDs de los lugares visitados
+        const locIdsActivos = [...new Set(observaciones
+            .filter(obs => obs.locId)
+            .map(obs => obs.locId))];
+
+        // Le decimos a Mapbox: "Pinta de rojo los IDs de esta lista, el resto déjalos azules"
+        map.setPaintProperty('unclustered-point', 'circle-color', [
+            'match',
+            ['get', 'locId'],
+            locIdsActivos, '#ff5252', // Color activo (Rojo)
+            '#11b4da' // Color inactivo (Azul original)
+        ]);
+
+        // Actualizamos el botón
+        btn.classList.add('activo');
+        btn.innerText = "🔥 Ocultar activos";
+
+    } catch (error) {
+        console.error("Error cargando radar:", error);
+        btn.innerText = "Error de conexión";
+    }
+}

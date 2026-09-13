@@ -479,33 +479,27 @@ function cambiarEstiloMapa(tipo) {
     if (tipo === estiloMapaActual || !map) return;
     estiloMapaActual = tipo;
 
-    // Actualizar botones UI
+    // 1. Cambiar estado visual de los botones
     const btnStreets = document.getElementById('btn-style-streets');
     const btnSatellite = document.getElementById('btn-style-satellite');
     if (btnStreets) btnStreets.classList.toggle('active', tipo === 'streets');
     if (btnSatellite) btnSatellite.classList.toggle('active', tipo === 'satellite');
 
-    // Mapear estilos de Mapbox
+    // 2. Seleccionar mapa base de Mapbox
     const estiloUrl = tipo === 'streets' 
         ? 'mapbox://styles/mapbox/outdoors-v12' 
         : 'mapbox://styles/mapbox/satellite-streets-v12';
 
     map.setStyle(estiloUrl);
 
-    // Reconstruir la capa de hotspots al cargar el nuevo estilo
+    // 3. Re-dibujar los hotspots una vez cargado el nuevo estilo base
     map.once('style.load', () => {
-        const features = (typeof hotspotsDataGlobal !== 'undefined' && hotspotsDataGlobal) 
-            ? hotspotsDataGlobal.map(h => ({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
-                properties: { locId: h.locId, locName: h.locName }
-            })) 
-            : [];
+        const geojson = obtenerGeoJSONActual();
 
         if (!map.getSource('ebird-hotspots')) {
             map.addSource('ebird-hotspots', {
                 type: 'geojson',
-                data: { type: 'FeatureCollection', features: features },
+                data: geojson,
                 cluster: false
             });
         }
@@ -525,7 +519,6 @@ function cambiarEstiloMapa(tipo) {
         }
     });
 }
-
 // 3. Filtrar los puntos del mapa en tiempo real según la búsqueda de un input text
 function buscarHotspotPorNombre(textoBusqueda) {
     if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;

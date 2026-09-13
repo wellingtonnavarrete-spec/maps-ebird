@@ -133,17 +133,23 @@ map.on('load', async () => {
         const lat = coordinates[1];
         const fotoUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lng},${lat},14,0/300x160?access_token=${mapboxgl.accessToken}`;
 
-        const htmlContent = `
-            <div class="popup-card-clean">
-                <img src="${fotoUrl}" class="popup-img-clean" alt="${locName}">
-                <div class="popup-body-clean">
-                    <h3>${locName}</h3>
+const htmlContent = `
+        <div class="popup-card-clean">
+            <img src="${fotoUrl}" class="popup-img-clean" alt="${locName}">
+            <div class="popup-body-clean">
+                <h3>${locName}</h3>
+                <div style="display: flex; gap: 8px; flex-direction: column;">
                     <button class="popup-btn-clean" onclick="cargarObservaciones('${locId}')">
                         🌿 Ver aves recientes
                     </button>
+                    <button class="popup-btn-ir" 
+                        onclick="iniciarRutaHacia(${coordinates[0]}, ${coordinates[1]}, '${locName}')">
+                        🚗 Ir hacia aquí
+                    </button>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
         new mapboxgl.Popup()
             .setLngLat(coordinates)

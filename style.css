@@ -234,55 +234,47 @@ body {
     display: none !important;
 }
 
+/* Contenedor principal del HUD (Transparente para ver el mapa) */
 #nav-hud {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    background: transparent !important;
     pointer-events: none;
-    z-index: 3000;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 16px;
+    padding: 15px;
     box-sizing: border-box;
+    z-index: 30;
 }
 
+/* Banner superior con la instrucción */
 #nav-top-banner {
-    background: #064e3b;
+    background: #0f172a;
     color: #ffffff;
     padding: 14px 18px;
-    border-radius: 18px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    border-radius: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
 }
 
-.nav-arrow-icon {
-    width: 32px;
-    height: 32px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
+/* Barra inferior con tiempos y botón Salir */
 #nav-bottom-bar {
-    background: #111827;
+    background: #0f172a;
     color: #ffffff;
-    padding: 16px 20px;
-    border-radius: 20px;
+    padding: 14px 18px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 -8px 28px rgba(0,0,0,0.45);
-    pointer-events: auto;
 }
 
 #nav-exit-btn {

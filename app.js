@@ -159,7 +159,7 @@ map.on('load', async () => {
     map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
 
-    activarGPSInicial();
+   activarRastreoPosicion();
 });
 
 // 5. Panel Lateral e Imágenes Wikipedia
@@ -543,18 +543,94 @@ function buscarHotspotPorNombre(textoBusqueda) {
     }
 }
 
-// Exportación al objeto global
-window.centrarUbicacion = centrarUbicacion;
-window.cambiarEstiloMapa = cambiarEstiloMapa;
-window.buscarHotspotPorNombre = buscarHotspotPorNombre;
-// Rastreo de posición en tiempo real (GPS continuo)
+// ==========================================
+// 9. FUNCIONALIDADES DE CONTROL Y RASTREO GPS
+// ==========================================
+
 let userMarker = null;
 let watchPositionId = null;
 
+// Centrar el mapa al instante en la ubicación del marcador activo
+function centrarUbicacion() {
+    if (!map) return;
+
+    if (userMarker) {
+        const lngLat = userMarker.getLngLat();
+        map.flyTo({ center: [lngLat.lng, lngLat.lat], zoom: 16, pitch: 45, essential: true });
+    } else if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, pitch: 45, essential: true }),
+            () => alert("GPS sin permisos o desactivado.")
+        );
+    }
+}
+
+// Alternar entre estilos de mapa ('streets' vs 'satellite')
+let estiloMapaActual = 'satellite';
+
+function cambiarEstiloMapa(tipo) {
+    if (tipo === estiloMapaActual || !map) return;
+    estiloMapaActual = tipo;
+
+    const btnStreets = document.getElementById('btn-style-streets');
+    const btnSatellite = document.getElementById('btn-style-satellite');
+    if (btnStreets) btnStreets.classList.toggle('active', tipo === 'streets');
+    if (btnSatellite) btnSatellite.classList.toggle('active', tipo === 'satellite');
+
+    const estiloUrl = tipo === 'streets' 
+        ? 'mapbox://styles/mapbox/outdoors-v12' 
+        : 'mapbox://styles/mapbox/satellite-streets-v12';
+
+    map.setStyle(estiloUrl);
+
+    map.once('style.load', () => {
+        const geojson = obtenerGeoJSONActual();
+
+        if (!map.getSource('ebird-hotspots')) {
+            map.addSource('ebird-hotspots', { type: 'geojson', data: geojson, cluster: false });
+        }
+
+        if (!map.getLayer('unclustered-point')) {
+            map.addLayer({
+                id: 'unclustered-point',
+                type: 'circle',
+                source: 'ebird-hotspots',
+                paint: {
+                    'circle-color': '#00b4d8',
+                    'circle-radius': 6,
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#ffffff'
+                }
+            });
+        }
+    });
+}
+
+// Filtrar hotspots por nombre
+function buscarHotspotPorNombre(textoBusqueda) {
+    if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;
+
+    const textoLimpio = textoBusqueda.toLowerCase().trim();
+    const filtrados = hotspotsDataGlobal.filter(h => h.locName.toLowerCase().includes(textoLimpio));
+
+    const geojsonFiltrado = {
+        type: 'FeatureCollection',
+        features: filtrados.map(h => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
+            properties: { locId: h.locId, locName: h.locName }
+        }))
+    };
+
+    if (map.getSource('ebird-hotspots')) {
+        map.getSource('ebird-hotspots').setData(geojsonFiltrado);
+    }
+}
+
+// Rastreo de posición en tiempo real (Punto azul animado)
 function activarRastreoPosicion() {
     if (!navigator.geolocation) return;
 
-    // Crear elemento visual
     const el = document.createElement('div');
     el.className = 'user-location-marker';
     el.innerHTML = `
@@ -562,7 +638,6 @@ function activarRastreoPosicion() {
         <div class="user-dot"></div>
     `;
 
-    // Escuchar cambios de GPS en tiempo real
     watchPositionId = navigator.geolocation.watchPosition(
         (pos) => {
             const coords = [pos.coords.longitude, pos.coords.latitude];
@@ -571,22 +646,19 @@ function activarRastreoPosicion() {
                 userMarker = new mapboxgl.Marker({ element: el })
                     .setLngLat(coords)
                     .addTo(map);
+                
+                map.flyTo({ center: coords, zoom: 15.5, pitch: 65, essential: true });
+                detectarRegionPorGPS(coords[0], coords[1]);
             } else {
                 userMarker.setLngLat(coords);
             }
         },
-        (err) => console.error("Error al obtener posición GPS:", err),
-        {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 10000
-        }
+        (err) => console.error("Error GPS:", err),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
 }
 
-// Iniciar rastreo asegurando que el mapa esté listo
-if (map.loaded()) {
-    activarRastreoPosicion();
-} else {
-    map.once('load', () => activarRastreoPosicion());
-}
+// Exportación consolidada al objeto window
+window.centrarUbicacion = centrarUbicacion;
+window.cambiarEstiloMapa = cambiarEstiloMapa;
+window.buscarHotspotPorNombre = buscarHotspotPorNombre;

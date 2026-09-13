@@ -351,6 +351,8 @@ async function buscarHotspotsActivos() {
 }
 // Variable global para controlar el seguimiento en vivo
 let watchId = null;
+let watchId = null;
+let currentHeading = 0;
 
 function iniciarRutaHacia(lng, lat, nombreDestino) {
     // 1. Configurar la ruta en el panel de Mapbox Directions
@@ -368,24 +370,38 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
         navigator.geolocation.clearWatch(watchId);
     }
 
-    // 3. Activar seguimiento en tiempo real (Tracking GPS + Vista 3D Waze)
+    // 3. Activar escucha de la brújula del teléfono (orientación en vivo al girar)
+    if (window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientationabsolute', (event) => {
+            // event.alpha da la brújula absoluta en dispositivos compatibles
+            if (event.alpha !== null) {
+                currentHeading = 360 - event.alpha;
+            }
+        }, true);
+    }
+
+    // 4. Activar seguimiento en tiempo real (Tracking GPS + Rotación automática por rumbo)
     if (typeof map !== 'undefined') {
         watchId = navigator.geolocation.watchPosition((position) => {
             const userLng = position.coords.longitude;
             const userLat = position.coords.latitude;
-            const heading = position.coords.heading || 0;
+            
+            // Si el GPS entrega rumbo de movimiento (heading), lo usamos; si no, el de la brújula
+            const gpsHeading = position.coords.heading;
+            const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : currentHeading;
 
+            // Centrar y rotar suavemente el mapa en 3D
             map.easeTo({
                 center: [userLng, userLat],
-                zoom: 18,
-                pitch: 65,
-                bearing: heading,
-                duration: 800,
+                zoom: 18.5,       // Zoom cercano nivel auto
+                pitch: 65,        // Inclinación 3D profunda
+                bearing: bearingToUse, // Gira automáticamente hacia donde apunta el teléfono/auto
+                duration: 600,
                 easing: (t) => t,
                 essential: true
             });
         }, (error) => {
-            console.log("Error GPS en vivo:", error);
+            console.log("Error de GPS en vivo:", error);
         }, {
             enableHighAccuracy: true,
             maximumAge: 0,

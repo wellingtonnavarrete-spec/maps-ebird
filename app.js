@@ -20,7 +20,22 @@ const REGIONES_CHILE = {
   'CL-AI': { nombre: 'Aysén' },
   'CL-MA': { nombre: 'Magallanes' }
 };
+// Función para convertir el nombre detectado al código ISO de eBird (ej: 'La Araucanía' -> 'CL-AR')
+function obtenerCodigoRegionEBird(nombreDetectado) {
+    if (!nombreDetectado) return 'CL-AR'; // Región por defecto si falla la detección
 
+    // Normalizar texto para evitar problemas con tildes y mayúsculas
+    const normalizar = (txt) => txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const nombreLimpio = normalizar(nombreDetectado);
+
+    for (const [code, info] of Object.entries(REGIONES_CHILE)) {
+        if (nombreLimpio.includes(normalizar(info.nombre))) {
+            return code;
+        }
+    }
+
+    return 'CL-AR'; // Fallback a La Araucanía si no coincide
+}
 // Variables para el control dinámico de regiones
 let regionActual = null;
 let regionManual = false;
@@ -70,7 +85,7 @@ async function refrescarMapaHotspots(codeRegion) {
   }
 }
 // 3. Función para descargar y transformar datos de eBird a GeoJSON
-aasync function getEBirdHotspots(codeRegion) {
+async function getEBirdHotspots(codeRegion) {
     if (regionesCargadas.has(codeRegion)) return null;
 
     try {

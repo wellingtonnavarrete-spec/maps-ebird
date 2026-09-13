@@ -430,16 +430,37 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     if (titleInstr) titleInstr.innerText = `Hacia ${nombreDestino}`;
 
     if (typeof map !== 'undefined') {
-        map.easeTo({ zoom: 18.5, pitch: 65, bearing: navCurrentHeading, duration: 1000, essential: true });
     }
 
-    if (typeof directions !== 'undefined') {
-        directions.on('route', (e) => {
-            if (e.route && e.route.length > 0) {
-                const ruta = e.route[0];
-                const minutos = Math.round(ruta.duration / 60);
-                const km = (ruta.distance / 1000).toFixed(1);
+   directions.on('route', (e) => {
+        if (e.route && e.route.length > 0) {
+            const ruta = e.route[0];
+            const minutos = Math.round(ruta.duration / 60);
+            const km = (ruta.distance / 1000).toFixed(1);
 
+            // --- ORIENTAR EL MAPA AL INICIO DE LA RUTA ---
+            if (ruta.geometry && ruta.geometry.coordinates && ruta.geometry.coordinates.length > 1) {
+                const coords = ruta.geometry.coordinates;
+                const p1 = coords[0]; // Tu posición [lng, lat]
+                const p2 = coords[Math.min(3, coords.length - 1)]; // Un punto más adelante en la calle
+
+                // Calcular el ángulo (bearing) inicial de la calle
+                const dLon = (p2[0] - p1[0]) * Math.PI / 180;
+                const lat1 = p1[1] * Math.PI / 180;
+                const lat2 = p2[1] * Math.PI / 180;
+                const y = Math.sin(dLon) * Math.cos(lat2);
+                const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+                const bearingInicial = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+
+                // Girar la cámara hacia donde inicia la calle
+                map.easeTo({
+                    center: p1,
+                    zoom: 17,
+                    pitch: 65,
+                    bearing: bearingInicial,
+                    duration: 1200
+                });
+            }
                 const ahora = new Date();
                 ahora.setMinutes(ahora.getMinutes() + minutos);
                 

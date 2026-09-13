@@ -227,3 +227,61 @@ body {
 .popup-btn-ir:hover {
     background-color: #059669;
 }
+/* --- HUD de Navegación Flotante --- */
+#nav-hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Permite tocar el mapa detrás si es necesario */
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 15px;
+    box-sizing: border-box;
+}
+
+#nav-top-banner {
+    background-color: #064e3b;
+    color: white;
+    padding: 16px 20px;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+#nav-bottom-bar {
+    background-color: #111827;
+    color: white;
+    padding: 18px 24px;
+    border-radius: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -6px 25px rgba(0,0,0,0.5);
+    pointer-events: auto;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+#nav-exit-btn {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    transition: background 0.2s;
+}
+
+#nav-exit-btn:hover {
+    background-color: #dc2626;
+}

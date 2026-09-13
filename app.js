@@ -255,42 +255,65 @@ async function cargarObservaciones(locId) {
 function cerrarPanel() {
     document.getElementById('side-panel').classList.remove('panel-open');
 }
-// --- NUEVA FUNCIÓN: Resaltar Hotspots Activos ---
+// --- NUEVA FUNCIÓN: Resaltar Hotspots Activos (Vista Panorámica) ---
 async function buscarHotspotsActivos() {
     const btn = document.getElementById('btn-radar');
-    
-    // Si ya está activo, lo apagamos y volvemos al azul original
+
+    // Si ya está activo, apagamos la capa superior y restauramos el botón
     if (btn.classList.contains('activo')) {
-        map.setPaintProperty('unclustered-point', 'circle-color', '#11b4da');
         btn.classList.remove('activo');
-        btn.innerText = "🔥 Ver activos (Últimos 3 días)";
+        btn.innerText = "🔥 Ver activos (Últimos 7 días)";
+        if (map.getLayer('puntos-rojos')) map.removeLayer('puntos-rojos');
+        if (map.getSource('activos-source')) map.removeSource('activos-source');
         return;
     }
 
     btn.innerText = "Buscando...";
 
     try {
-        // Traemos todas las observaciones de la región de los últimos 7 días (back=7)
-        // Nota: Asegúrate de que regionCode esté definido como 'CL-AR' al inicio de tu app.js
         const response = await fetch(`https://api.ebird.org/v2/data/obs/CL-AR/recent?back=7`, {
             headers: { 'X-eBirdApiToken': ebirdApiKey }
         });
         const observaciones = await response.json();
 
-        // Filtramos para obtener solo una lista con los IDs de los lugares visitados
-        const locIdsActivos = [...new Set(observaciones
-            .filter(obs => obs.locId)
-            .map(obs => obs.locId))];
+        // Extraer ubicaciones únicas con sus coordenadas exactas
+        const lugaresActivos = [];
+        const idsVistos = new Set();
+        
+        observaciones.forEach(obs => {
+            if (obs.locId && !idsVistos.has(obs.locId)) {
+                idsVistos.add(obs.locId);
+                lugaresActivos.push({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [obs.lng, obs.lat] },
+                    properties: { locId: obs.locId, locName: obs.locName }
+                });
+            }
+        });
 
-        // Le decimos a Mapbox: "Pinta de rojo los IDs de esta lista, el resto déjalos azules"
-        map.setPaintProperty('unclustered-point', 'circle-color', [
-            'match',
-            ['get', 'locId'],
-            locIdsActivos, '#ff5252', // Color activo (Rojo)
-            '#11b4da' // Color inactivo (Azul original)
-        ]);
+        // Limpiar capas previas por si se hace doble clic rápido
+        if (map.getLayer('puntos-rojos')) map.removeLayer('puntos-rojos');
+        if (map.getSource('activos-source')) map.removeSource('activos-source');
 
-        // Actualizamos el botón
+        // Inyectar una nueva fuente de datos exclusiva para los puntos activos
+        map.addSource('activos-source', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: lugaresActivos }
+        });
+
+        // Dibujar los puntos rojos por encima de todo el mapa
+        map.addLayer({
+            id: 'puntos-rojos',
+            type: 'circle',
+            source: 'activos-source',
+            paint: {
+                'circle-color': '#ff5252',
+                'circle-radius': 8,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff'
+            }
+        });
+
         btn.classList.add('activo');
         btn.innerText = "🔥 Ocultar activos";
 

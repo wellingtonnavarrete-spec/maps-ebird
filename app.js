@@ -89,7 +89,7 @@ async function getEBirdHotspots(codeRegion) {
     if (regionesCargadas.has(codeRegion)) return null;
 
     try {
-        const response = await fetch(`https://api.ebird.org/v2/ref/hotspot/${codeRegion}?fmt=json`, {
+        const response = await fetch(`https://corsproxy.io/?https://api.ebird.org/v2/ref/hotspot/${codeRegion}?fmt=json`, {
             headers: { 'X-eBirdToken': ebirdApiKey }
         });
 

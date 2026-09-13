@@ -11,6 +11,20 @@ const map = new mapboxgl.Map({
     zoom: 8
 });
 
+// --- NUEVO: Control de Navegación (Rutas) ---
+const directions = new MapboxDirections({
+    accessToken: mapboxgl.accessToken,
+    unit: 'metric', // Usar kilómetros
+    profile: 'mapbox/driving', // Ruta para auto
+    language: 'es-CL', // Instrucciones en español
+    placeholderOrigin: 'Origen (ej: Temuco)',
+    placeholderDestination: 'Destino (ej: Saavedra)'
+});
+
+// Agregamos el panel de búsqueda en la esquina superior izquierda
+map.addControl(directions, 'top-left');
+
+// Control de zoom estándar del mapa
 map.addControl(new mapboxgl.NavigationControl());
 
 // 3. Función para descargar y transformar datos de eBird a GeoJSON

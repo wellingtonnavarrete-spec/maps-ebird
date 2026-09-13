@@ -349,24 +349,34 @@ async function buscarHotspotsActivos() {
         btn.innerText = "Error de conexión";
     }
 }
-function iniciarRutaHacia(lng, lat, nombreDestino) {
-    // 1. Ocultar popups y limpiar pantalla
+// --- Iniciar Navegación HUD Estilo Waze ---
+window.iniciarRutaHacia = function(lng, lat, nombreDestino) {
+    // 1. Limpiar pantalla
     const popups = document.getElementsByClassName('mapboxgl-popup');
     while (popups[0]) {
         popups[0].remove();
     }
-    
     const btnRadar = document.getElementById('btn-radar');
     if (btnRadar) btnRadar.style.display = 'none';
 
-    // 2. Mostrar HUD de conducción
+    // 2. Mostrar HUD
     const hud = document.getElementById('nav-hud');
     if (hud) hud.style.display = 'flex';
-
     const titleInstr = document.getElementById('nav-instruction');
     if (titleInstr) titleInstr.innerText = `Hacia ${nombreDestino}`;
 
-    // 3. Calcular ruta real con Mapbox y mostrar tiempo/distancia en vivo
+    // 3. ¡INCLINACIÓN INMEDIATA! (El mapa reacciona antes de esperar al GPS)
+    if (typeof map !== 'undefined') {
+        map.easeTo({
+            zoom: 18.5,
+            pitch: 65,
+            bearing: currentHeading,
+            duration: 1000,
+            essential: true
+        });
+    }
+
+    // 4. Calcular ruta con Mapbox
     if (typeof directions !== 'undefined') {
         directions.on('route', (e) => {
             if (e.route && e.route.length > 0) {
@@ -384,14 +394,28 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
                 if (detailsEl) detailsEl.innerText = `${km} km • Llegada ${eta}`;
             }
         });
+
+        // Buscar el GPS y trazar la línea azul
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const userLng = pos.coords.longitude;
+            const userLat = pos.coords.latitude;
+            
+            directions.setOrigin([userLng, userLat]);
+            directions.setDestination([lng, lat]);
+            
+            // Centrar la cámara en el usuario ahora que tenemos la ubicación
+            if (typeof map !== 'undefined') {
+                map.easeTo({ center: [userLng, userLat], essential: true });
+            }
+        }, () => {
+            directions.setDestination([lng, lat]);
+        }, { enableHighAccuracy: true });
     }
 
-    // 4. Limpiar rastreo previo si existía
+    // 5. Brújula del móvil
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
     }
-
-    // 5. Brújula del móvil para rotación fluida
     if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientationabsolute', (event) => {
             if (event.alpha !== null) {
@@ -400,40 +424,14 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
         }, true);
     }
 
-    // 6. INCLINACIÓN AUTOMÁTICA INMEDIATA AL DARLE A "IR"
+    // 6. Seguimiento continuo de la cámara
     if (typeof map !== 'undefined') {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const userLng = pos.coords.longitude;
-            const userLat = pos.coords.latitude;
-            
-            // Forzar la vista 3D de inmediato al iniciar
-            map.easeTo({
-                center: [userLng, userLat],
-                zoom: 18.5,
-                pitch: 65,
-                bearing: currentHeading,
-                duration: 1000,
-                essential: true
-            });
-
-            if (typeof directions !== 'undefined') {
-                directions.setOrigin([userLng, userLat]);
-                directions.setDestination([lng, lat]);
-            }
-        }, () => {
-            if (typeof directions !== 'undefined') {
-                directions.setDestination([lng, lat]);
-            }
-        }, { enableHighAccuracy: true });
-
-        // 7. Seguimiento automático continuo en tiempo real
         watchId = navigator.geolocation.watchPosition((position) => {
             const userLng = position.coords.longitude;
             const userLat = position.coords.latitude;
             const gpsHeading = position.coords.heading;
             const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : currentHeading;
 
-            // Mantiene la cámara bloqueada y orientada automáticamente al avanzar
             map.easeTo({
                 center: [userLng, userLat],
                 zoom: 18.5,
@@ -451,4 +449,31 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
             timeout: 5000
         });
     }
-}
+};
+
+// --- Salir de la Navegación ---
+window.salirNavegacion = function() {
+    const hud = document.getElementById('nav-hud');
+    if (hud) hud.style.display = 'none';
+
+    const btnRadar = document.getElementById('btn-radar');
+    if (btnRadar) btnRadar.style.display = 'block';
+
+    if (typeof directions !== 'undefined') {
+        directions.removeRoutes();
+    }
+
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+
+    if (typeof map !== 'undefined') {
+        map.easeTo({
+            pitch: 0,
+            bearing: 0,
+            zoom: 13,
+            duration: 800
+        });
+    }
+};

@@ -349,10 +349,6 @@ async function buscarHotspotsActivos() {
         btn.innerText = "Error de conexión";
     }
 }
-// Variables globales para el seguimiento
-let watchId = null;
-let currentHeading = 0;
-
 function iniciarRutaHacia(lng, lat, nombreDestino) {
     // 1. Mostrar el HUD de navegación flotante tipo Waze
     const hud = document.getElementById('nav-hud');

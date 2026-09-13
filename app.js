@@ -2,6 +2,7 @@
 mapboxgl.accessToken = 'pk.eyJ1Ijoid2VsbHluYXZhcnJldGUiLCJhIjoiY210emQwbjBoMG9hbDJ5b2t0MHcxc3BkbyJ9.j_-CVMex9D8_qx_y1wPnJg';
 const ebirdApiKey = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
 
+// Diccionario completo de regiones de Chile
 const REGIONES_CHILE = {
   'CL-AP': { nombre: 'Arica y Parinacota' },
   'CL-TA': { nombre: 'Tarapacá' },
@@ -21,11 +22,26 @@ const REGIONES_CHILE = {
   'CL-MA': { nombre: 'Magallanes' }
 };
 
+function obtenerCodigoRegionEBird(nombreDetectado) {
+    if (!nombreDetectado) return 'CL-AR';
+    const normalizar = (txt) => txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const nombreLimpio = normalizar(nombreDetectado);
+
+    for (const [code, info] of Object.entries(REGIONES_CHILE)) {
+        if (nombreLimpio.includes(normalizar(info.nombre))) {
+            return code;
+        }
+    }
+    return 'CL-AR';
+}
+
+// Variables globales
 let regionActual = null;
 let regionManual = false;
 const regionesCargadas = new Set();
 let hotspotsDataGlobal = [];
 let ultimaVerificacionRegion = 0;
+let ultimoHotspotAlertado = null;
 
 // 2. Inicialización del Mapa
 const map = new mapboxgl.Map({
@@ -46,40 +62,33 @@ map.on('style.load', () => {
     }
 });
 
-// Control Seguro de Navegación (Rutas)
-let directions = null;
-if (typeof MapboxDirections !== 'undefined') {
-    directions = new MapboxDirections({
-        accessToken: mapboxgl.accessToken,
-        unit: 'metric',
-        profile: 'mapbox/driving',
-        language: 'es-CL',
-        placeholderOrigin: 'Origen (ej: Temuco)',
-        placeholderDestination: 'Destino (ej: Saavedra)'
-    });
-    map.addControl(directions, 'top-left');
-}
+// Control de Navegación (Rutas)
+const directions = new MapboxDirections({
+    accessToken: mapboxgl.accessToken,
+    unit: 'metric',
+    profile: 'mapbox/driving',
+    language: 'es-CL',
+    placeholderOrigin: 'Origen (ej: Temuco)',
+    placeholderDestination: 'Destino (ej: Saavedra)'
+});
+
+map.addControl(directions, 'top-left');
 map.addControl(new mapboxgl.NavigationControl());
 
-// Helper para obtener GeoJSON seguro
-function obtenerGeoJSONActual() {
-    return {
-        type: 'FeatureCollection',
-        features: hotspotsDataGlobal.map(hotspot => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [hotspot.lng, hotspot.lat] },
-            properties: { locId: hotspot.locId, locName: hotspot.locName }
-        }))
-    };
-}
-
-// 3. Obtención de Hotspots eBird (Nivel de error resguardado)
+// 3. Descarga de datos eBird (vía Proxy en URL para evitar error CORS)
 async function getEBirdHotspots(codeRegion) {
-    if (!codeRegion || typeof codeRegion !== 'string' || codeRegion.includes('.') || regionesCargadas.has(codeRegion)) {
-        return obtenerGeoJSONActual();
-    }
+  if (!codeRegion || typeof codeRegion !== 'string' || codeRegion.includes('.') || regionesCargadas.has(codeRegion)) {
+      return {
+          type: 'FeatureCollection',
+          features: hotspotsDataGlobal.map(h => ({
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
+              properties: { locId: h.locId, locName: h.locName }
+          }))
+      };
+  }
   
-    try {
+  try {
         const response = await fetch(`https://corsproxy.io/?https://api.ebird.org/v2/ref/hotspot/${codeRegion}?fmt=json&key=${ebirdApiKey}`);
 
         if (response.ok) {
@@ -90,42 +99,91 @@ async function getEBirdHotspots(codeRegion) {
             }
         }
     } catch (error) {
-        console.error("Error al obtener eBird hotspots:", error);
+        console.error("Error cargando eBird:", error);
     }
 
-    return obtenerGeoJSONActual();
+    return {
+        type: 'FeatureCollection',
+        features: hotspotsDataGlobal.map(hotspot => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [hotspot.lng, hotspot.lat] },
+            properties: { locId: hotspot.locId, locName: hotspot.locName }
+        }))
+    };
 }
 
 async function refrescarMapaHotspots(codeRegion) {
-    const geojson = await getEBirdHotspots(codeRegion);
-    if (map.getSource('ebird-hotspots')) {
-        map.getSource('ebird-hotspots').setData(geojson);
-    }
+  const geojson = await getEBirdHotspots(codeRegion);
+  if (geojson && map.getSource('ebird-hotspots')) {
+    map.getSource('ebird-hotspots').setData(geojson);
+  }
 }
 
-// 4. Carga e Interacción del Mapa
+// 4. Carga de datos, Clustering e Interacciones
 map.on('load', async () => {
     const hotspotsGeoJSON = await getEBirdHotspots('CL-AR');
 
     map.addSource('ebird-hotspots', {
         type: 'geojson',
         data: hotspotsGeoJSON, 
-        cluster: false
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50
+    });
+  
+    // Capa de clústeres
+    map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'ebird-hotspots',
+        filter: ['has', 'point_count'],
+        paint: {
+            'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 10, '#f1f075', 50, '#f28cb1'],
+            'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40]
+        }
     });
 
+    // Capa de texto sobre clústeres
+    map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'ebird-hotspots',
+        filter: ['has', 'point_count'],
+        layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+            'text-size': 12
+        }
+    });
+
+    // Capa de puntos individuales
     map.addLayer({
         id: 'unclustered-point',
         type: 'circle',
         source: 'ebird-hotspots',
+        filter: ['!', ['has', 'point_count']],
         paint: {
             'circle-color': '#11b4da',
-            'circle-radius': 7,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff'
+            'circle-radius': 6,
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#fff'
         }
     });
 
-    // Eventos Clic sobre Puntos
+    // Eventos de Zoom en Clústeres
+    map.on('click', 'clusters', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+        const clusterId = features[0].properties.cluster_id;
+        map.getSource('ebird-hotspots').getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return;
+            map.easeTo({ center: features[0].geometry.coordinates, zoom: zoom });
+        });
+    });
+
+    map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+
+    // Evento de clic en hotspots individuales (Popup)
     map.on('click', 'unclustered-point', (e) => {
         const coordinates = e.features[0].geometry.coordinates.slice();
         const locName = e.features[0].properties.locName;
@@ -140,11 +198,12 @@ map.on('load', async () => {
                 <img src="${fotoUrl}" class="popup-img-clean" alt="${locName}">
                 <div class="popup-body-clean">
                     <h3>${locName}</h3>
-                    <div style="display: flex; gap: 8px; flex-direction: column; margin-top: 8px;">
+                    <div style="display: flex; gap: 8px; flex-direction: column;">
                         <button class="popup-btn-clean" onclick="cargarObservaciones('${locId}')">
                             🌿 Ver aves recientes
                         </button>
-                        <button class="popup-btn-ir" onclick="iniciarRutaHacia(${lng}, ${lat}, '${locName.replace(/'/g, "\\'")}')">
+                        <button class="popup-btn-ir" 
+                            onclick="iniciarRutaHacia(${coordinates[0]}, ${coordinates[1]}, '${locName.replace(/'/g, "\\'")}')">
                             🚗 Ir hacia aquí
                         </button>
                     </div>
@@ -161,11 +220,10 @@ map.on('load', async () => {
     map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
 
-    // Activar GPS solo tras confirmarse la carga del mapa
     activarGPSInicial();
 });
 
-// 5. Panel Lateral de Aves
+// 5. Panel Lateral e Imágenes Wikipedia
 async function cargarImagenAve(sciName, speciesCode) {
     try {
         const query = sciName.replace(' ', '_');
@@ -177,7 +235,7 @@ async function cargarImagenAve(sciName, speciesCode) {
             if (imgEl) imgEl.src = data.thumbnail.source;
         }
     } catch (e) {
-        console.log("Sin foto para:", sciName);
+        console.log("Sin foto en Wikipedia para:", sciName);
     }
 }
 
@@ -225,7 +283,71 @@ function cerrarPanel() {
     if (panel) panel.classList.remove('panel-open');
 }
 
-// 6. Navegación HUD en Ruta
+// 6. Radar de Hotspots Activos (Últimos 7 Días)
+async function buscarHotspotsActivos() {
+    const btn = document.getElementById('btn-radar');
+    if (!btn) return;
+
+    if (btn.classList.contains('activo')) {
+        btn.classList.remove('activo');
+        btn.innerText = "🔥 Ver activos (Últimos 7 días)";
+        if (map.getLayer('puntos-rojos')) map.removeLayer('puntos-rojos');
+        if (map.getSource('activos-source')) map.removeSource('activos-source');
+        return;
+    }
+
+    btn.innerText = "Buscando...";
+
+    try {
+        const response = await fetch(`https://corsproxy.io/?https://api.ebird.org/v2/data/obs/CL-AR/recent?back=7&key=${ebirdApiKey}`);
+        const observaciones = await response.json();
+
+        const lugaresActivos = [];
+        const idsVistos = new Set();
+        
+        if (Array.isArray(observaciones)) {
+            observaciones.forEach(obs => {
+                if (obs.locId && !idsVistos.has(obs.locId)) {
+                    idsVistos.add(obs.locId);
+                    lugaresActivos.push({
+                        type: 'Feature',
+                        geometry: { type: 'Point', coordinates: [obs.lng, obs.lat] },
+                        properties: { locId: obs.locId, locName: obs.locName }
+                    });
+                }
+            });
+        }
+
+        if (map.getLayer('puntos-rojos')) map.removeLayer('puntos-rojos');
+        if (map.getSource('activos-source')) map.removeSource('activos-source');
+
+        map.addSource('activos-source', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: lugaresActivos }
+        });
+
+        map.addLayer({
+            id: 'puntos-rojos',
+            type: 'circle',
+            source: 'activos-source',
+            paint: {
+                'circle-color': '#ff5252',
+                'circle-radius': 8,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff'
+            }
+        });
+
+        btn.classList.add('activo');
+        btn.innerText = "🔥 Ocultar activos";
+
+    } catch (error) {
+        console.error("Error cargando radar:", error);
+        btn.innerText = "Error de conexión";
+    }
+}
+
+// 7. Navegación HUD y Geolocation Tracking
 let navWatchId = null;
 let navCurrentHeading = 0;
 let navMarker = null;
@@ -237,21 +359,62 @@ if (window.DeviceOrientationEvent) {
 }
 
 function iniciarRutaHacia(lng, lat, nombreDestino) {
+    const mapboxPanels = document.querySelectorAll('.mapboxgl-ctrl-directions, .mapbox-directions-component, .mapbox-directions-route-summary');
+    mapboxPanels.forEach(p => p.style.setProperty('display', 'none', 'important'));
+
     const popups = document.getElementsByClassName('mapboxgl-popup');
     while (popups[0]) popups[0].remove();
     
+    const btnRadar = document.getElementById('btn-radar');
+    if (btnRadar) btnRadar.style.display = 'none';
+
     const hud = document.getElementById('nav-hud');
     if (hud) hud.style.display = 'flex';
     
     const titleInstr = document.getElementById('nav-instruction');
     if (titleInstr) titleInstr.innerText = `Hacia ${nombreDestino}`;
 
-    if (directions) {
+    directions.on('route', (e) => {
+        if (e.route && e.route.length > 0) {
+            const ruta = e.route[0];
+            const minutos = Math.round(ruta.duration / 60);
+            const km = (ruta.distance / 1000).toFixed(1);
+
+            if (ruta.geometry && ruta.geometry.coordinates && ruta.geometry.coordinates.length > 1) {
+                const coords = ruta.geometry.coordinates;
+                const p1 = coords[0];
+                const p2 = coords[Math.min(3, coords.length - 1)];
+
+                const dLon = (p2[0] - p1[0]) * Math.PI / 180;
+                const lat1 = p1[1] * Math.PI / 180;
+                const lat2 = p2[1] * Math.PI / 180;
+                const y = Math.sin(dLon) * Math.cos(lat2);
+                const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+                const bearingInicial = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+
+                map.easeTo({
+                    center: p1,
+                    zoom: 17,
+                    pitch: 65,
+                    bearing: bearingInicial,
+                    duration: 1200
+                });
+            }
+
+            const ahora = new Date();
+            ahora.setMinutes(ahora.getMinutes() + minutos);
+            
+            const timeEl = document.getElementById('nav-time');
+            const detailsEl = document.getElementById('nav-details');
+            if (timeEl) timeEl.innerText = `${minutos} min`;
+            if (detailsEl) detailsEl.innerText = `${km} km • Llegada ${ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        }
+    });
+
+    navigator.geolocation.getCurrentPosition((pos) => {
+        directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
         directions.setDestination([lng, lat]);
-        navigator.geolocation.getCurrentPosition((pos) => {
-            directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
-        });
-    }
+    }, () => directions.setDestination([lng, lat]), { enableHighAccuracy: true });
 
     if (navWatchId !== null) navigator.geolocation.clearWatch(navWatchId);
 
@@ -265,30 +428,51 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
         const speedEl = document.getElementById('speedometer-value');
         if (speedEl) speedEl.textContent = speedKmh;
 
-        map.easeTo({ center: [userLng, userLat], zoom: 18, pitch: 65, bearing: bearingToUse, duration: 600, essential: true });
-
-        if (!navMarker) {
-            const el = document.createElement('div');
-            el.className = 'nav-marker';
-            navMarker = new mapboxgl.Marker({ element: el }).setLngLat([userLng, userLat]).addTo(map);
-        } else {
-            navMarker.setLngLat([userLng, userLat]);
+        const ahora = Date.now();
+        if (ahora - ultimaVerificacionRegion > 30000) {
+            detectarRegionPorGPS(userLng, userLat);
+            ultimaVerificacionRegion = ahora;
         }
-    }, (err) => console.log(err), { enableHighAccuracy: true });
+
+        verificarHotspotsCercanosEnRuta(userLng, userLat);
+
+        if (typeof map !== 'undefined') {
+            map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, easing: (t) => t, essential: true });
+
+            if (!navMarker) {
+                const el = document.createElement('div');
+                el.className = 'nav-marker';
+                navMarker = new mapboxgl.Marker({ element: el }).setLngLat([userLng, userLat]).addTo(map);
+            } else {
+                navMarker.setLngLat([userLng, userLat]);
+            }
+        }
+    }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
 }
 
 function salirNavegacion() {
     const hud = document.getElementById('nav-hud');
     if (hud) hud.style.display = 'none';
-
-    if (directions) directions.removeRoutes();
-    if (navWatchId !== null) { navigator.geolocation.clearWatch(navWatchId); navWatchId = null; }
-    if (navMarker) { navMarker.remove(); navMarker = null; }
     
-    map.easeTo({ pitch: 0, bearing: 0, zoom: 13, duration: 800 });
+    const btnRadar = document.getElementById('btn-radar');
+    if (btnRadar) btnRadar.style.display = 'block';
+
+    if (typeof directions !== 'undefined') directions.removeRoutes();
+    
+    if (navWatchId !== null) {
+        navigator.geolocation.clearWatch(navWatchId);
+        navWatchId = null;
+    }
+
+    if (navMarker) {
+        navMarker.remove();
+        navMarker = null;
+    }
+    
+    if (typeof map !== 'undefined') map.easeTo({ pitch: 0, bearing: 0, zoom: 13, duration: 800 });
 }
 
-// 7. Geolocalización y Reverse Geocoding
+// 8. Detección por Geocoding y Alertas de Desvío
 async function detectarRegionPorGPS(lng, lat) {
     if (regionManual) return;
 
@@ -300,12 +484,71 @@ async function detectarRegionPorGPS(lng, lat) {
             const isoCode = data.features[0].properties.short_code;
             if (isoCode && REGIONES_CHILE[isoCode] && regionActual !== isoCode) {
                 regionActual = isoCode;
+                const selectEl = document.getElementById('region-select');
+                if (selectEl) selectEl.value = isoCode;
+
                 await refrescarMapaHotspots(isoCode);
             }
         }
     } catch (error) {
-        console.error("Error reconociendo ubicación por GPS:", error);
+        console.error("Error al detectar región por GPS:", error);
     }
+}
+
+function verificarHotspotsCercanosEnRuta(userLng, userLat) {
+    if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;
+
+    const RADIO_ALERTA_KM = 1.5;
+    let hotspotCercano = null;
+    let menorDistancia = RADIO_ALERTA_KM;
+
+    hotspotsDataGlobal.forEach(spot => {
+        const dist = calcularDistanciaKm(userLat, userLng, spot.lat, spot.lng);
+        if (dist < menorDistancia) {
+            menorDistancia = dist;
+            hotspotCercano = spot;
+        }
+    });
+
+    if (hotspotCercano && hotspotCercano.locId !== ultimoHotspotAlertado) {
+        ultimoHotspotAlertado = hotspotCercano.locId;
+        mostrarTarjetaDesvio(hotspotCercano, menorDistancia);
+    }
+}
+
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+function mostrarTarjetaDesvio(hotspot, distanciaKm) {
+    let card = document.getElementById('desvio-card');
+    if (!card) {
+        card = document.createElement('div');
+        card.id = 'desvio-card';
+        card.className = 'desvio-card-hud';
+        document.body.appendChild(card);
+    }
+
+    const distTexto = distanciaKm < 1 ? `${Math.round(distanciaKm * 1000)} m` : `${distanciaKm.toFixed(1)} km`;
+
+    card.innerHTML = `
+        <div class="desvio-info">
+            <span class="desvio-tag">🔥 Hotspot cercano</span>
+            <strong>${hotspot.locName}</strong>
+            <small>A ${distTexto} de tu ruta</small>
+        </div>
+        <button onclick="iniciarRutaHacia(${hotspot.lng}, ${hotspot.lat}, '${hotspot.locName.replace(/'/g, "\\'")}')">Desviarme 📍</button>
+    `;
+
+    card.classList.add('visible');
+    setTimeout(() => card.classList.remove('visible'), 12000);
 }
 
 function activarGPSInicial() {
@@ -315,16 +558,18 @@ function activarGPSInicial() {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
 
-                map.flyTo({ center: [lng, lat], zoom: 14, pitch: 45, essential: true });
+                map.flyTo({ center: [lng, lat], zoom: 15.5, pitch: 65, essential: true });
                 detectarRegionPorGPS(lng, lat);
             },
-            (error) => console.warn("GPS no listo:", error.message),
-            { enableHighAccuracy: true, timeout: 8000 }
+            (error) => console.warn("GPS inicial no disponible:", error.message),
+            { enableHighAccuracy: true, timeout: 10000 }
         );
     }
 }
 
+// Global Exports
 window.iniciarRutaHacia = iniciarRutaHacia;
 window.salirNavegacion = salirNavegacion;
 window.cargarObservaciones = cargarObservaciones;
 window.cerrarPanel = cerrarPanel;
+window.buscarHotspotsActivos = buscarHotspotsActivos;

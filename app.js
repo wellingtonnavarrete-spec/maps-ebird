@@ -448,3 +448,56 @@ window.salirNavegacion = salirNavegacion;
 window.cargarObservaciones = cargarObservaciones;
 window.cerrarPanel = cerrarPanel;
 window.buscarHotspotsActivos = buscarHotspotsActivos;
+// ==========================================
+// 9. NUEVAS FUNCIONALIDADES ADICIONALES
+// ==========================================
+
+// 1. Centrar el mapa al instante en la ubicación actual del usuario
+function centrarUbicacion() {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            map.flyTo({
+                center: [pos.coords.longitude, pos.coords.latitude],
+                zoom: 16,
+                pitch: 45,
+                essential: true
+            });
+        }, (err) => console.warn("No se pudo obtener la ubicación actual:", err));
+    }
+}
+
+// 2. Alternar entre estilos de mapa (ej: 'satellite-streets-v12', 'outdoors-v12', 'dark-v11')
+function cambiarEstiloMapa(estiloId) {
+    if (map) {
+        map.setStyle(`mapbox://styles/mapbox/${estiloId}`);
+    }
+}
+
+// 3. Filtrar los puntos del mapa en tiempo real según la búsqueda de un input text
+function buscarHotspotPorNombre(textoBusqueda) {
+    if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;
+
+    const textoLimpio = textoBusqueda.toLowerCase().trim();
+    
+    const filtrados = hotspotsDataGlobal.filter(h => 
+        h.locName.toLowerCase().includes(textoLimpio)
+    );
+
+    const geojsonFiltrado = {
+        type: 'FeatureCollection',
+        features: filtrados.map(h => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
+            properties: { locId: h.locId, locName: h.locName }
+        }))
+    };
+
+    if (map.getSource('ebird-hotspots')) {
+        map.getSource('ebird-hotspots').setData(geojsonFiltrado);
+    }
+}
+
+// Exportación al objeto global
+window.centrarUbicacion = centrarUbicacion;
+window.cambiarEstiloMapa = cambiarEstiloMapa;
+window.buscarHotspotPorNombre = buscarHotspotPorNombre;

@@ -334,10 +334,20 @@ body {
 #nav-exit-btn:hover {
     background: #dc2626;
 }
-/* Ocultar por completo las instrucciones y el panel A/B de Mapbox al navegar */
+/* Ocultar ABSOLUTAMENTE TODO el panel por defecto de Mapbox Directions */
+.mapboxgl-ctrl-directions,
+.mapbox-directions-component,
 .mapbox-directions-instructions,
-.mapbox-directions-instructions-wrapper,
 .mapbox-directions-profile-picker,
-.mapboxgl-ctrl-directions {
+.mapbox-directions-route-summary {
     display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Asegurar que el botón Salir se pueda tocar */
+#nav-exit-btn {
+    pointer-events: auto !important;
+    z-index: 9999;
 }

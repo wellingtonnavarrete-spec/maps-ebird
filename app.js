@@ -1,5 +1,5 @@
 // 1. Credenciales
-mapboxgl.accessToken = 'pk.eyJ1Ijoid2VsbHluYXZhcnJldGUiLCJhIjoiY210emJ5YmF1MGkwNTJ3cHM3bjN5MXNsMyJ9.aMygGNT7FYaNhMw1wMmeAw';
+mapboxgl.accessToken = 'pk.eyJ1Ijoid2VsbHluYXZhcnJldGUiLCJhIjoiY210emQwbjBoMG9hbDJ5b2t0MHcxc3BkbyJ9.j_-CVMex9D8_qx_y1wPnJg';
 const ebirdApiKey = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
 const regionCode = 'CL-AR'; // La Araucanía
 

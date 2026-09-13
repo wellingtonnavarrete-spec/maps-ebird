@@ -295,8 +295,42 @@ body {
     font-size: 15px;
     cursor: pointer;
     transition: background 0.2s;
+#nav-top-banner {
+    background: #064e3b;
+    color: #ffffff;
+    padding: 16px 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 18px; /* Texto más grande */
 }
 
+#nav-bottom-bar {
+    background: #111827;
+    color: #ffffff;
+    padding: 20px 24px;
+    border-radius: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -10px 35px rgba(0,0,0,0.5);
+    pointer-events: auto;
+}
+
+#nav-time {
+    font-size: 26px !important; /* Minutos más grandes estilo Waze */
+    font-weight: 800;
+    color: #34d399;
+}
+
+#nav-details {
+    font-size: 15px !important; /* Kilómetros y hora más legibles */
+    color: #9ca3af;
+    margin-top: 4px;
+}
 #nav-exit-btn:hover {
     background: #dc2626;
 }

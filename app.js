@@ -539,3 +539,41 @@ async function detectarRegionPorGPS(lng, lat) {
     console.error("Error al detectar región por GPS:", error);
   }
 }
+// Variable para evitar saturar con alertas seguidas
+let ultimoHotspotAlertado = null;
+
+function verificarHotspotsCercanosEnRuta(userLng, userLat) {
+  if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;
+
+  // Radio de alerta en kilómetros (ej: 1.5 km)
+  const RADIO_ALERTA_KM = 1.5;
+
+  let hotspotCercano = null;
+  let menorDistancia = RADIO_ALERTA_KM;
+
+  hotspotsDataGlobal.forEach(spot => {
+    const dist = calcularDistanciaKm(userLat, userLng, spot.lat, spot.lng);
+    if (dist < menorDistancia) {
+      menorDistancia = dist;
+      hotspotCercano = spot;
+    }
+  });
+
+  // Si encontramos un hotspot cercano y no es el mismo de la última alerta
+  if (hotspotCercano && hotspotCercano.locId !== ultimoHotspotAlertado) {
+    ultimoHotspotAlertado = hotspotCercano.locId;
+    mostrarTarjetaDesvio(hotspotCercano, menorDistancia);
+  }
+}
+
+// Fórmula de Haversine pura (sin librerías externas)
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radio de la Tierra en km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}

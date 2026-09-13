@@ -446,13 +446,13 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
 
     if (navWatchId !== null) navigator.geolocation.clearWatch(navWatchId);
     
-   navWatchId = navigator.geolocation.watchPosition((position) => {
+  navWatchId = navigator.geolocation.watchPosition((position) => {
   const userLng = position.coords.longitude;
   const userLat = position.coords.latitude;
   const gpsHeading = position.coords.heading;
   const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : navCurrentHeading;
 
-  // 1. ACTUALIZAR VELOCÍMETRO (convertir m/s a km/h)
+  // 1. ACTUALIZAR VELOCÍMETRO
   const speedKmh = (position.coords.speed && position.coords.speed > 0) 
     ? Math.round(position.coords.speed * 3.6) 
     : 0;
@@ -465,25 +465,26 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     detectarRegionPorGPS(userLng, userLat);
     ultimaVerificacionRegion = ahora;
   }
-// Verificar hotspots para sugerir desvío en ruta
-verificarHotspotsCercanosEnRuta(userLng, userLat);
+
+  // 3. VERIFICAR HOTSPOTS CERCANOS EN RUTA
+  verificarHotspotsCercanosEnRuta(userLng, userLat);
+
   if (typeof map !== 'undefined') {
-    // 3. Mover la cámara
+    // 4. Mover la cámara
     map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, easing: (t) => t, essential: true });
 
-    // 4. Crear o mover el ícono de navegación
+    // 5. Crear o mover el ícono de navegación
     if (!navMarker) {
       const el = document.createElement('div');
       el.className = 'nav-marker';
       navMarker = new mapboxgl.Marker({ element: el })
         .setLngLat([userLng, userLat])
-       .addTo(map);
+        .addTo(map);
     } else {
-navMarker.setLngLat([userLng, userLat]);
+      navMarker.setLngLat([userLng, userLat]);
     }
   }
 }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
-
 function salirNavegacion() {
     const hud = document.getElementById('nav-hud');
     if (hud) hud.style.display = 'none';

@@ -349,13 +349,12 @@ async function buscarHotspotsActivos() {
         btn.innerText = "Error de conexión";
     }
 }
-// Variable global para controlar el seguimiento en vivo
-let watchId = null;
+// Variables globales para el seguimiento
 let watchId = null;
 let currentHeading = 0;
 
 function iniciarRutaHacia(lng, lat, nombreDestino) {
-    // 1. Configurar la ruta en el panel de Mapbox Directions
+    // 1. Configurar la ruta en Mapbox Directions
     if (typeof directions !== 'undefined') {
         navigator.geolocation.getCurrentPosition((pos) => {
             directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
@@ -370,38 +369,34 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
         navigator.geolocation.clearWatch(watchId);
     }
 
-    // 3. Activar escucha de la brújula del teléfono (orientación en vivo al girar)
+    // 3. Brújula para rotación automática
     if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientationabsolute', (event) => {
-            // event.alpha da la brújula absoluta en dispositivos compatibles
             if (event.alpha !== null) {
                 currentHeading = 360 - event.alpha;
             }
         }, true);
     }
 
-    // 4. Activar seguimiento en tiempo real (Tracking GPS + Rotación automática por rumbo)
+    // 4. Tracking GPS en vivo con vista 3D tipo Waze
     if (typeof map !== 'undefined') {
         watchId = navigator.geolocation.watchPosition((position) => {
             const userLng = position.coords.longitude;
             const userLat = position.coords.latitude;
-            
-            // Si el GPS entrega rumbo de movimiento (heading), lo usamos; si no, el de la brújula
             const gpsHeading = position.coords.heading;
             const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : currentHeading;
 
-            // Centrar y rotar suavemente el mapa en 3D
             map.easeTo({
                 center: [userLng, userLat],
-                zoom: 18.5,       // Zoom cercano nivel auto
-                pitch: 65,        // Inclinación 3D profunda
-                bearing: bearingToUse, // Gira automáticamente hacia donde apunta el teléfono/auto
+                zoom: 18.5,
+                pitch: 65,
+                bearing: bearingToUse,
                 duration: 600,
                 easing: (t) => t,
                 essential: true
             });
         }, (error) => {
-            console.log("Error de GPS en vivo:", error);
+            console.log("Error GPS en vivo:", error);
         }, {
             enableHighAccuracy: true,
             maximumAge: 0,

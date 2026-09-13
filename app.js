@@ -351,14 +351,38 @@ async function buscarHotspotsActivos() {
 }
 // Función para activar la ruta y el seguimiento hacia el hotspot seleccionado
 function iniciarRutaHacia(lng, lat, nombreDestino) {
+    // 1. Configurar la ruta en Mapbox Directions
     if (typeof directions !== 'undefined') {
-        navigator.geolocation.getCurrentPosition((position) => {
-            const userLng = position.coords.longitude;
-            const userLat = position.coords.latitude;
-            directions.setOrigin([userLng, userLat]);
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const uLng = pos.coords.longitude;
+            const uLat = pos.coords.latitude;
+            directions.setOrigin([uLng, uLat]);
             directions.setDestination([lng, lat]);
         }, () => {
             directions.setDestination([lng, lat]);
+        });
+    }
+
+    // 2. Perspectiva 3D inclinada (pitch 60°) y acercamiento
+    if (typeof map !== 'undefined') {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            map.flyTo({
+                center: [pos.coords.longitude, pos.coords.latitude],
+                zoom: 17.5,
+                pitch: 60,
+                bearing: 0,
+                essential: true,
+                duration: 2000
+            });
+        }, () => {
+            map.flyTo({
+                center: [lng, lat],
+                zoom: 17.5,
+                pitch: 60,
+                bearing: 0,
+                essential: true,
+                duration: 2000
+            });
         });
     }
 

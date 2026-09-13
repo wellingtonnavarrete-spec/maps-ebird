@@ -129,19 +129,29 @@ map.on('load', async () => {
         const locId = e.features[0].properties.locId;
 
         // Crear la ventana emergente (Popup)
-        new mapboxgl.Popup()
-            .setLngLat(coordinates)
-            .setHTML(`
-                <div style="padding: 5px;">
-                    <h3 style="margin: 0 0 8px 0; font-size: 15px; color: #333;">${locName}</h3>
-                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #777;">ID: ${locId}</p>
-                    <button onclick="cargarObservaciones('${locId}')" style="background: #11b4da; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%;">
-                        Ver aves recientes
-                    </button>
-                </div>
-            `)
-            .addTo(map);
-    });
+// Crear la ventana emergente (Popup con foto satelital)
+    const lng = coordinates[0];
+    const lat = coordinates[1];
+    const staticImgUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lng},${lat},14,0/240x110?access_token=${mapboxgl.accessToken}`;
+
+    const htmlContent = `
+        <div class="popup-card">
+            <img src="${staticImgUrl}" class="popup-img" alt="Vista aérea">
+            <div class="popup-body">
+                <h3>${locName}</h3>
+                <p>ID: ${locId}</p>
+                <button class="popup-btn" onclick="cargarObservaciones('${locId}')">
+                    🌿 Ver aves recientes
+                </button>
+            </div>
+        </div>
+    `;
+
+    new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML(htmlContent)
+        .addTo(map);
+});
 
     // 2. Cambiar el cursor a la "manito" al pasar sobre un punto
     map.on('mouseenter', 'unclustered-point', () => { 

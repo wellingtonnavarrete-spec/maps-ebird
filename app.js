@@ -446,27 +446,42 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
 
     if (navWatchId !== null) navigator.geolocation.clearWatch(navWatchId);
     
-    navWatchId = navigator.geolocation.watchPosition((position) => {
-        const userLng = position.coords.longitude;
-        const userLat = position.coords.latitude;
-        const gpsHeading = position.coords.heading;
-        const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : navCurrentHeading;
+   navWatchId = navigator.geolocation.watchPosition((position) => {
+  const userLng = position.coords.longitude;
+  const userLat = position.coords.latitude;
+  const gpsHeading = position.coords.heading;
+  const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : navCurrentHeading;
 
-        if (typeof map !== 'undefined') {
-            // 1. Mover la cámara
-            map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, easing: (t) => t, essential: true });
+  // 1. ACTUALIZAR VELOCÍMETRO (convertir m/s a km/h)
+  const speedKmh = (position.coords.speed && position.coords.speed > 0) 
+    ? Math.round(position.coords.speed * 3.6) 
+    : 0;
+  const speedEl = document.getElementById('speedometer-value');
+  if (speedEl) speedEl.textContent = speedKmh;
 
-            // 2. CREAR O MOVER EL ÍCONO DE NAVEGACIÓN
-            if (!navMarker) {
-                const el = document.createElement('div');
-                el.className = 'nav-marker';
-                navMarker = new mapboxgl.Marker({ element: el })
-                    .setLngLat([userLng, userLat])
-                    .addTo(map);
-            } else {
-                navMarker.setLngLat([userLng, userLat]);
-            }
-        }
+  // 2. VERIFICAR CAMBIO DE REGIÓN POR GPS (Cada 30 segundos)
+  const ahora = Date.now();
+  if (ahora - ultimaVerificacionRegion > 30000) {
+    detectarRegionPorGPS(userLng, userLat);
+    ultimaVerificacionRegion = ahora;
+  }
+
+  if (typeof map !== 'undefined') {
+    // 3. Mover la cámara
+    map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, easing: (t) => t, essential: true });
+
+    // 4. Crear o mover el ícono de navegación
+    if (!navMarker) {
+      const el = document.createElement('div');
+      el.className = 'nav-marker';
+      navMarker = new mapboxgl.Marker({ element: el })
+        .setLngLat([userLng, userLat])
+        .addTo(map);
+    } else {
+      navMarker.setLngLat([userLng, userLat]);
+    }
+  }
+}, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
 }
 
@@ -495,3 +510,32 @@ function salirNavegacion() {
 
 window.iniciarRutaHacia = iniciarRutaHacia;
 window.salirNavegacion = salirNavegacion;
+// Detecta la región usando Mapbox Reverse Geocoding
+async function detectarRegionPorGPS(lng, lat) {
+  if (regionManual) return; // Si el usuario fijó una región en la interfaz, no la cambiamos
+
+  try {
+    const res = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=region&access_token=${mapboxgl.accessToken}`
+    );
+    const data = await res.json();
+    
+    if (data.features && data.features.length > 0) {
+      const isoCode = data.features[0].properties.short_code; // Ej: "CL-LR" (Los Ríos)
+
+      if (isoCode && REGIONES_CHILE[isoCode] && regionActual !== isoCode) {
+        regionActual = isoCode;
+        
+        // Actualiza la opción seleccionada en el menú UI (si existe)
+        const selectEl = document.getElementById('region-select');
+        if (selectEl) selectEl.value = isoCode;
+
+        // Carga la nueva región de eBird manteniendo los puntos existentes en el mapa
+        await refrescarMapaHotspots(isoCode);
+        console.log(`Auto-detectada nueva región: ${REGIONES_CHILE[isoCode].nombre}`);
+      }
+    }
+  } catch (error) {
+    console.error("Error al detectar región por GPS:", error);
+  }
+}

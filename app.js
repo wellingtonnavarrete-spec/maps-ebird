@@ -106,61 +106,26 @@ async function refrescarMapaHotspots(codeRegion) {
     }
 }
 
-// 4. Carga de datos, Clustering e Interacciones
+// 4. Carga de datos e Interacciones (Puntos Individuales sin Clustering)
 map.on('load', async () => {
     const hotspotsGeoJSON = await getEBirdHotspots('CL-AR');
 
     map.addSource('ebird-hotspots', {
         type: 'geojson',
         data: hotspotsGeoJSON, 
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50
-    });
-  
-    map.addLayer({
-        id: 'clusters',
-        type: 'circle',
-        source: 'ebird-hotspots',
-        filter: ['has', 'point_count'],
-        paint: {
-            'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 10, '#f1f075', 50, '#f28cb1'],
-            'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40]
-        }
-    });
-
-    map.addLayer({
-        id: 'cluster-count',
-        type: 'symbol',
-        source: 'ebird-hotspots',
-        filter: ['has', 'point_count'],
-        layout: {
-            'text-field': '{point_count_abbreviated}',
-            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-            'text-size': 12
-        }
+        cluster: false
     });
 
     map.addLayer({
         id: 'unclustered-point',
         type: 'circle',
         source: 'ebird-hotspots',
-        filter: ['!', ['has', 'point_count']],
         paint: {
-            'circle-color': '#11b4da',
+            'circle-color': '#00b4d8',
             'circle-radius': 6,
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#fff'
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
         }
-    });
-
-    map.on('click', 'clusters', (e) => {
-        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-        const clusterId = features[0].properties.cluster_id;
-        map.getSource('ebird-hotspots').getClusterExpansionZoom(clusterId, (err, zoom) => {
-            if (err) return;
-            map.easeTo({ center: features[0].geometry.coordinates, zoom: zoom });
-        });
     });
 
     map.on('click', 'unclustered-point', (e) => {
@@ -189,8 +154,6 @@ map.on('load', async () => {
 
     map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
-    map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
 
     activarGPSInicial();
 });

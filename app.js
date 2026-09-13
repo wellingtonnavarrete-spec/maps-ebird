@@ -465,7 +465,8 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     detectarRegionPorGPS(userLng, userLat);
     ultimaVerificacionRegion = ahora;
   }
-
+// Verificar hotspots para sugerir desvío en ruta
+verificarHotspotsCercanosEnRuta(userLng, userLat);
   if (typeof map !== 'undefined') {
     // 3. Mover la cámara
     map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, easing: (t) => t, essential: true });
@@ -576,4 +577,63 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+}
+// --- SISTEMA DE ALERTAS DE DESVÍO EN RUTA ---
+let ultimoHotspotAlertado = null;
+
+function verificarHotspotsCercanosEnRuta(userLng, userLat) {
+  if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;
+
+  const RADIO_ALERTA_KM = 1.5; // Distancia máxima para alertar desvío
+  let hotspotCercano = null;
+  let menorDistancia = RADIO_ALERTA_KM;
+
+  hotspotsDataGlobal.forEach(spot => {
+    const dist = calcularDistanciaKm(userLat, userLng, spot.lat, spot.lng);
+    if (dist < menorDistancia) {
+      menorDistancia = dist;
+      hotspotCercano = spot;
+    }
+  });
+
+  if (hotspotCercano && hotspotCercano.locId !== ultimoHotspotAlertado) {
+    ultimoHotspotAlertado = hotspotCercano.locId;
+    mostrarTarjetaDesvio(hotspotCercano, menorDistancia);
+  }
+}
+
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+function mostrarTarjetaDesvio(hotspot, distanciaKm) {
+  let card = document.getElementById('desvio-card');
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'desvio-card';
+    card.className = 'desvio-card-hud';
+    document.body.appendChild(card);
+  }
+
+  const distTexto = distanciaKm < 1 
+    ? `${Math.round(distanciaKm * 1000)} m` 
+    : `${distanciaKm.toFixed(1)} km`;
+
+  card.innerHTML = `
+    <div class="desvio-info">
+      <span class="desvio-tag">🔥 Hotspot cercano</span>
+      <strong>${hotspot.locName}</strong>
+      <small>A ${distTexto} de tu ruta</small>
+    </div>
+    <button onclick="iniciarRutaHacia(${hotspot.lng}, ${hotspot.lat})">Desviarme 📍</button>
+  `;
+
+  card.classList.add('visible');
+  setTimeout(() => card.classList.remove('visible'), 12000);
 }

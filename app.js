@@ -22,19 +22,6 @@ const REGIONES_CHILE = {
   'CL-MA': { nombre: 'Magallanes' }
 };
 
-function obtenerCodigoRegionEBird(nombreDetectado) {
-    if (!nombreDetectado) return 'CL-AR';
-    const normalizar = (txt) => txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const nombreLimpio = normalizar(nombreDetectado);
-
-    for (const [code, info] of Object.entries(REGIONES_CHILE)) {
-        if (nombreLimpio.includes(normalizar(info.nombre))) {
-            return code;
-        }
-    }
-    return 'CL-AR';
-}
-
 // Variables globales
 let regionActual = null;
 let regionManual = false;
@@ -75,7 +62,7 @@ const directions = new MapboxDirections({
 map.addControl(directions, 'top-left');
 map.addControl(new mapboxgl.NavigationControl());
 
-// Helper para garantizar GeoJSON válido siempre
+// Helper para garantizar GeoJSON válido
 function obtenerGeoJSONActual() {
     return {
         type: 'FeatureCollection',
@@ -131,7 +118,6 @@ map.on('load', async () => {
         clusterRadius: 50
     });
   
-    // Capa de clústeres
     map.addLayer({
         id: 'clusters',
         type: 'circle',
@@ -143,7 +129,6 @@ map.on('load', async () => {
         }
     });
 
-    // Capa de texto sobre clústeres
     map.addLayer({
         id: 'cluster-count',
         type: 'symbol',
@@ -156,7 +141,6 @@ map.on('load', async () => {
         }
     });
 
-    // Capa de puntos individuales
     map.addLayer({
         id: 'unclustered-point',
         type: 'circle',
@@ -170,7 +154,6 @@ map.on('load', async () => {
         }
     });
 
-    // Eventos de Zoom en Clústeres
     map.on('click', 'clusters', (e) => {
         const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
         const clusterId = features[0].properties.cluster_id;
@@ -180,15 +163,10 @@ map.on('load', async () => {
         });
     });
 
-    map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
-
-    // Evento de clic en hotspots individuales (Popup)
     map.on('click', 'unclustered-point', (e) => {
         const coordinates = e.features[0].geometry.coordinates.slice();
         const locName = e.features[0].properties.locName;
         const locId = e.features[0].properties.locId;
-
         const lng = coordinates[0];
         const lat = coordinates[1];
         const fotoUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lng},${lat},14,0/300x160?access_token=${mapboxgl.accessToken}`;
@@ -199,26 +177,20 @@ map.on('load', async () => {
                 <div class="popup-body-clean">
                     <h3>${locName}</h3>
                     <div style="display: flex; gap: 8px; flex-direction: column;">
-                        <button class="popup-btn-clean" onclick="cargarObservaciones('${locId}')">
-                            🌿 Ver aves recientes
-                        </button>
-                        <button class="popup-btn-ir" 
-                            onclick="iniciarRutaHacia(${coordinates[0]}, ${coordinates[1]}, '${locName.replace(/'/g, "\\'")}')">
-                            🚗 Ir hacia aquí
-                        </button>
+                        <button class="popup-btn-clean" onclick="cargarObservaciones('${locId}')">🌿 Ver aves recientes</button>
+                        <button class="popup-btn-ir" onclick="iniciarRutaHacia(${lng}, ${lat}, '${locName.replace(/'/g, "\\'")}')">🚗 Ir hacia aquí</button>
                     </div>
                 </div>
             </div>
         `;
 
-        new mapboxgl.Popup()
-            .setLngLat(coordinates)
-            .setHTML(htmlContent)
-            .addTo(map);
+        new mapboxgl.Popup().setLngLat(coordinates).setHTML(htmlContent).addTo(map);
     });
 
-    map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
+    map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
 
     activarGPSInicial();
 });
@@ -229,29 +201,25 @@ async function cargarImagenAve(sciName, speciesCode) {
         const query = sciName.replace(' ', '_');
         const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${query}`);
         const data = await res.json();
-        
         if (data.thumbnail && data.thumbnail.source) {
             const imgEl = document.getElementById(`img-${speciesCode}`);
             if (imgEl) imgEl.src = data.thumbnail.source;
         }
-    } catch (e) {
-        console.log("Sin foto en Wikipedia para:", sciName);
-    }
+    } catch (e) { console.log("Sin foto en Wikipedia"); }
 }
 
 async function cargarObservaciones(locId) {
     const panel = document.getElementById('side-panel');
     const content = document.getElementById('panel-content');
-    
     if (panel) panel.classList.add('panel-open');
-    if (content) content.innerHTML = '<p style="text-align: center; color: #777;">Cargando lista de aves...</p>';
+    if (content) content.innerHTML = '<p style="text-align: center;">Cargando...</p>';
 
     try {
         const response = await fetch(`https://corsproxy.io/?https://api.ebird.org/v2/data/obs/${locId}/recent?sppLocale=es-CL&key=${ebirdApiKey}`);
         const aves = await response.json();
 
         if (!Array.isArray(aves) || aves.length === 0) {
-            if (content) content.innerHTML = '<p>No hay observaciones en los últimos días.</p>';
+            if (content) content.innerHTML = '<p>No hay observaciones recientes.</p>';
             return;
         }
 
@@ -259,22 +227,19 @@ async function cargarObservaciones(locId) {
         aves.forEach(ave => {
             htmlLista += `
                 <div class="bird-item" style="display: flex; gap: 15px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee;">
-                    <img id="img-${ave.speciesCode}" src="https://via.placeholder.com/60?text=Ave" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; background: #f4f4f4; flex-shrink: 0;">
+                    <img id="img-${ave.speciesCode}" src="https://via.placeholder.com/60?text=Ave" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
                     <div>
-                        <div class="bird-name" style="font-size: 15px; font-weight: bold; color: #333;">${ave.comName}</div>
-                        <div style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 4px;">${ave.sciName}</div>
-                        <div class="bird-date" style="font-size: 11px; color: #999;">Último registro: ${ave.obsDt}</div>
+                        <div style="font-size: 15px; font-weight: bold;">${ave.comName}</div>
+                        <div style="font-size: 12px; color: #666; font-style: italic;">${ave.sciName}</div>
+                        <div style="font-size: 11px; color: #999;">Último registro: ${ave.obsDt}</div>
                     </div>
                 </div>
             `;
             cargarImagenAve(ave.sciName, ave.speciesCode);
         });
-        
         if (content) content.innerHTML = htmlLista;
-
     } catch (error) {
-        console.error(error);
-        if (content) content.innerHTML = '<p>Error de conexión con eBird.</p>';
+        if (content) content.innerHTML = '<p>Error de conexión.</p>';
     }
 }
 
@@ -283,7 +248,7 @@ function cerrarPanel() {
     if (panel) panel.classList.remove('panel-open');
 }
 
-// 6. Radar de Hotspots Activos (Últimos 7 Días)
+// 6. Radar de Hotspots Activos
 async function buscarHotspotsActivos() {
     const btn = document.getElementById('btn-radar');
     if (!btn) return;
@@ -297,11 +262,9 @@ async function buscarHotspotsActivos() {
     }
 
     btn.innerText = "Buscando...";
-
     try {
         const response = await fetch(`https://corsproxy.io/?https://api.ebird.org/v2/data/obs/CL-AR/recent?back=7&key=${ebirdApiKey}`);
         const observaciones = await response.json();
-
         const lugaresActivos = [];
         const idsVistos = new Set();
         
@@ -330,24 +293,17 @@ async function buscarHotspotsActivos() {
             id: 'puntos-rojos',
             type: 'circle',
             source: 'activos-source',
-            paint: {
-                'circle-color': '#ff5252',
-                'circle-radius': 8,
-                'circle-stroke-width': 2,
-                'circle-stroke-color': '#ffffff'
-            }
+            paint: { 'circle-color': '#ff5252', 'circle-radius': 8, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' }
         });
 
         btn.classList.add('activo');
         btn.innerText = "🔥 Ocultar activos";
-
     } catch (error) {
-        console.error("Error cargando radar:", error);
         btn.innerText = "Error de conexión";
     }
 }
 
-// 7. Navegación HUD y Geolocation Tracking
+// 7. Navegación HUD y Alertas
 let navWatchId = null;
 let navCurrentHeading = 0;
 let navMarker = null;
@@ -359,57 +315,12 @@ if (window.DeviceOrientationEvent) {
 }
 
 function iniciarRutaHacia(lng, lat, nombreDestino) {
-    const mapboxPanels = document.querySelectorAll('.mapboxgl-ctrl-directions, .mapbox-directions-component, .mapbox-directions-route-summary');
-    mapboxPanels.forEach(p => p.style.setProperty('display', 'none', 'important'));
-
-    const popups = document.getElementsByClassName('mapboxgl-popup');
-    while (popups[0]) popups[0].remove();
+    document.querySelectorAll('.mapboxgl-ctrl-directions').forEach(p => p.style.setProperty('display', 'none', 'important'));
+    while (document.getElementsByClassName('mapboxgl-popup')[0]) document.getElementsByClassName('mapboxgl-popup')[0].remove();
     
-    const btnRadar = document.getElementById('btn-radar');
-    if (btnRadar) btnRadar.style.display = 'none';
-
-    const hud = document.getElementById('nav-hud');
-    if (hud) hud.style.display = 'flex';
-    
-    const titleInstr = document.getElementById('nav-instruction');
-    if (titleInstr) titleInstr.innerText = `Hacia ${nombreDestino}`;
-
-    directions.on('route', (e) => {
-        if (e.route && e.route.length > 0) {
-            const ruta = e.route[0];
-            const minutos = Math.round(ruta.duration / 60);
-            const km = (ruta.distance / 1000).toFixed(1);
-
-            if (ruta.geometry && ruta.geometry.coordinates && ruta.geometry.coordinates.length > 1) {
-                const coords = ruta.geometry.coordinates;
-                const p1 = coords[0];
-                const p2 = coords[Math.min(3, coords.length - 1)];
-
-                const dLon = (p2[0] - p1[0]) * Math.PI / 180;
-                const lat1 = p1[1] * Math.PI / 180;
-                const lat2 = p2[1] * Math.PI / 180;
-                const y = Math.sin(dLon) * Math.cos(lat2);
-                const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-                const bearingInicial = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-
-                map.easeTo({
-                    center: p1,
-                    zoom: 17,
-                    pitch: 65,
-                    bearing: bearingInicial,
-                    duration: 1200
-                });
-            }
-
-            const ahora = new Date();
-            ahora.setMinutes(ahora.getMinutes() + minutos);
-            
-            const timeEl = document.getElementById('nav-time');
-            const detailsEl = document.getElementById('nav-details');
-            if (timeEl) timeEl.innerText = `${minutos} min`;
-            if (detailsEl) detailsEl.innerText = `${km} km • Llegada ${ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-        }
-    });
+    if (document.getElementById('btn-radar')) document.getElementById('btn-radar').style.display = 'none';
+    if (document.getElementById('nav-hud')) document.getElementById('nav-hud').style.display = 'flex';
+    if (document.getElementById('nav-instruction')) document.getElementById('nav-instruction').innerText = `Hacia ${nombreDestino}`;
 
     navigator.geolocation.getCurrentPosition((pos) => {
         directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
@@ -421,110 +332,52 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     navWatchId = navigator.geolocation.watchPosition((position) => {
         const userLng = position.coords.longitude;
         const userLat = position.coords.latitude;
-        const gpsHeading = position.coords.heading;
-        const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : navCurrentHeading;
+        const bearingToUse = position.coords.heading || navCurrentHeading;
 
-        const speedKmh = (position.coords.speed && position.coords.speed > 0) ? Math.round(position.coords.speed * 3.6) : 0;
-        const speedEl = document.getElementById('speedometer-value');
-        if (speedEl) speedEl.textContent = speedKmh;
-
-        const ahora = Date.now();
-        if (ahora - ultimaVerificacionRegion > 30000) {
-            detectarRegionPorGPS(userLng, userLat);
-            ultimaVerificacionRegion = ahora;
+        if (document.getElementById('speedometer-value')) {
+            document.getElementById('speedometer-value').textContent = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
         }
 
         verificarHotspotsCercanosEnRuta(userLng, userLat);
 
         if (typeof map !== 'undefined') {
-            map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, easing: (t) => t, essential: true });
-
+            map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, essential: true });
             if (!navMarker) {
-                const el = document.createElement('div');
-                el.className = 'nav-marker';
+                const el = document.createElement('div'); el.className = 'nav-marker';
                 navMarker = new mapboxgl.Marker({ element: el }).setLngLat([userLng, userLat]).addTo(map);
-            } else {
-                navMarker.setLngLat([userLng, userLat]);
-            }
+            } else { navMarker.setLngLat([userLng, userLat]); }
         }
-    }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+    }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true });
 }
 
 function salirNavegacion() {
-    const hud = document.getElementById('nav-hud');
-    if (hud) hud.style.display = 'none';
-    
-    const btnRadar = document.getElementById('btn-radar');
-    if (btnRadar) btnRadar.style.display = 'block';
-
+    if (document.getElementById('nav-hud')) document.getElementById('nav-hud').style.display = 'none';
+    if (document.getElementById('btn-radar')) document.getElementById('btn-radar').style.display = 'block';
     if (typeof directions !== 'undefined') directions.removeRoutes();
-    
-    if (navWatchId !== null) {
-        navigator.geolocation.clearWatch(navWatchId);
-        navWatchId = null;
-    }
-
-    if (navMarker) {
-        navMarker.remove();
-        navMarker = null;
-    }
-    
+    if (navWatchId !== null) { navigator.geolocation.clearWatch(navWatchId); navWatchId = null; }
+    if (navMarker) { navMarker.remove(); navMarker = null; }
     if (typeof map !== 'undefined') map.easeTo({ pitch: 0, bearing: 0, zoom: 13, duration: 800 });
 }
 
-// 8. Detección por Geocoding y Alertas de Desvío
-async function detectarRegionPorGPS(lng, lat) {
-    if (regionManual) return;
-
-    try {
-        const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=region&access_token=${mapboxgl.accessToken}`);
-        const data = await res.json();
-        
-        if (data.features && data.features.length > 0) {
-            const isoCode = data.features[0].properties.short_code;
-            if (isoCode && REGIONES_CHILE[isoCode] && regionActual !== isoCode) {
-                regionActual = isoCode;
-                const selectEl = document.getElementById('region-select');
-                if (selectEl) selectEl.value = isoCode;
-
-                await refrescarMapaHotspots(isoCode);
-            }
-        }
-    } catch (error) {
-        console.error("Error al detectar región por GPS:", error);
-    }
-}
-
 function verificarHotspotsCercanosEnRuta(userLng, userLat) {
-    if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;
-
-    const RADIO_ALERTA_KM = 1.5;
+    if (!hotspotsDataGlobal.length) return;
     let hotspotCercano = null;
-    let menorDistancia = RADIO_ALERTA_KM;
+    let menorDistancia = 1.5;
 
     hotspotsDataGlobal.forEach(spot => {
-        const dist = calcularDistanciaKm(userLat, userLng, spot.lat, spot.lng);
-        if (dist < menorDistancia) {
-            menorDistancia = dist;
-            hotspotCercano = spot;
-        }
+        const R = 6371;
+        const dLat = (spot.lat - userLat) * Math.PI / 180;
+        const dLon = (spot.lng - userLng) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(userLat * Math.PI / 180) * Math.cos(spot.lat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const dist = R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+
+        if (dist < menorDistancia) { menorDistancia = dist; hotspotCercano = spot; }
     });
 
     if (hotspotCercano && hotspotCercano.locId !== ultimoHotspotAlertado) {
         ultimoHotspotAlertado = hotspotCercano.locId;
         mostrarTarjetaDesvio(hotspotCercano, menorDistancia);
     }
-}
-
-function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
 }
 
 function mostrarTarjetaDesvio(hotspot, distanciaKm) {
@@ -535,31 +388,37 @@ function mostrarTarjetaDesvio(hotspot, distanciaKm) {
         card.className = 'desvio-card-hud';
         document.body.appendChild(card);
     }
-
     const distTexto = distanciaKm < 1 ? `${Math.round(distanciaKm * 1000)} m` : `${distanciaKm.toFixed(1)} km`;
-
     card.innerHTML = `
-        <div class="desvio-info">
-            <span class="desvio-tag">🔥 Hotspot cercano</span>
-            <strong>${hotspot.locName}</strong>
-            <small>A ${distTexto} de tu ruta</small>
-        </div>
+        <div class="desvio-info"><span class="desvio-tag">🔥 Hotspot cercano</span><strong>${hotspot.locName}</strong><small>A ${distTexto}</small></div>
         <button onclick="iniciarRutaHacia(${hotspot.lng}, ${hotspot.lat}, '${hotspot.locName.replace(/'/g, "\\'")}')">Desviarme 📍</button>
     `;
-
     card.classList.add('visible');
     setTimeout(() => card.classList.remove('visible'), 12000);
+}
+
+// 8. GPS Inicial
+async function detectarRegionPorGPS(lng, lat) {
+    if (regionManual) return;
+    try {
+        const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=region&access_token=${mapboxgl.accessToken}`);
+        const data = await res.json();
+        if (data.features && data.features.length > 0) {
+            const isoCode = data.features[0].properties.short_code;
+            if (isoCode && REGIONES_CHILE[isoCode] && regionActual !== isoCode) {
+                regionActual = isoCode;
+                await refrescarMapaHotspots(isoCode);
+            }
+        }
+    } catch (error) { console.error("Error GPS:", error); }
 }
 
 function activarGPSInicial() {
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-
-                map.flyTo({ center: [lng, lat], zoom: 15.5, pitch: 65, essential: true });
-                detectarRegionPorGPS(lng, lat);
+                map.flyTo({ center: [position.coords.longitude, position.coords.latitude], zoom: 15.5, pitch: 65, essential: true });
+                detectarRegionPorGPS(position.coords.longitude, position.coords.latitude);
             },
             (error) => console.warn("GPS inicial no disponible:", error.message),
             { enableHighAccuracy: true, timeout: 10000 }
@@ -567,7 +426,7 @@ function activarGPSInicial() {
     }
 }
 
-// Exportar funciones para ámbito global
+// Exports globales
 window.iniciarRutaHacia = iniciarRutaHacia;
 window.salirNavegacion = salirNavegacion;
 window.cargarObservaciones = cargarObservaciones;

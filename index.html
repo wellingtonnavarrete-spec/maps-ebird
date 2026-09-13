@@ -61,9 +61,34 @@
         <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
     </svg>
 </button>
-    <!-- Mapbox GL JS -->
+   <!-- Mapbox GL JS -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
+    <!-- Selector de Capas de Mapa (Esquina Inferior Izquierda) -->
+    <div id="map-style-switcher" class="map-style-container">
+        <button id="btn-style-streets" class="map-style-btn" onclick="cambiarEstiloMapa('streets')">
+            <div class="style-icon-box icon-streets">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                    <line x1="8" y1="2" x2="8" y2="18"></line>
+                    <line x1="16" y1="6" x2="16" y2="22"></line>
+                </svg>
+            </div>
+            <span>Mapa</span>
+        </button>
+        <button id="btn-style-satellite" class="map-style-btn active" onclick="cambiarEstiloMapa('satellite')">
+            <div class="style-icon-box icon-satellite">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2a14.5 14.5 0 0 0 0 29 14.5 14.5 0 0 0 0-29z"></path>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                </svg>
+            </div>
+            <span>Satélite</span>
+        </button>
+    </div>
+
     <!-- Tu código principal -->
-    <script src="app.js"></script>
+    <script src="app.js?v=2"></script>
 </body>
 </html>

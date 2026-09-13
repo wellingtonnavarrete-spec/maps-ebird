@@ -184,3 +184,74 @@ async function cargarObservaciones(locId) {
 function cerrarPanel() {
     document.getElementById('side-panel').classList.remove('panel-open');
 }
+// --- FUNCIONES DEL PANEL LATERAL ---
+
+// 1. Función para buscar la foto del ave en Wikipedia
+async function cargarImagenAve(sciName, speciesCode) {
+    try {
+        // Formateamos el nombre para buscarlo en Wikipedia (ej: "Buteo_ventralis")
+        const query = sciName.replace(' ', '_');
+        const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${query}`);
+        const data = await res.json();
+        
+        // Si Wikipedia tiene una foto (thumbnail), actualizamos la imagen en el panel
+        if (data.thumbnail && data.thumbnail.source) {
+            const imgEl = document.getElementById(`img-${speciesCode}`);
+            if (imgEl) imgEl.src = data.thumbnail.source;
+        }
+    } catch (e) {
+        // Falla silenciosamente si el ave no tiene foto en Wikipedia
+        console.log("Sin foto en Wikipedia para:", sciName);
+    }
+}
+
+// 2. Conectar a la API para traer las aves del hotspot
+async function cargarObservaciones(locId) {
+    const panel = document.getElementById('side-panel');
+    const content = document.getElementById('panel-content');
+    
+    panel.classList.add('panel-open');
+    content.innerHTML = '<p style="text-align: center; color: #777;">Cargando lista de aves...</p>';
+
+    try {
+        // MAGIA 1: Agregamos ?sppLocale=es-CL a la URL de eBird
+        const response = await fetch(`https://api.ebird.org/v2/data/obs/${locId}/recent?sppLocale=es-CL`, {
+            headers: { 'X-eBirdApiToken': ebirdApiKey }
+        });
+        const aves = await response.json();
+
+        if (aves.length === 0) {
+            content.innerHTML = '<p>No hay observaciones en los últimos días.</p>';
+            return;
+        }
+
+        let htmlLista = '';
+        aves.forEach(ave => {
+            // MAGIA 2: Maquetamos un espacio para la foto y disparamos la búsqueda
+            htmlLista += `
+                <div class="bird-item" style="display: flex; gap: 15px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee;">
+                    <img id="img-${ave.speciesCode}" src="https://via.placeholder.com/60?text=Ave" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; background: #f4f4f4; flex-shrink: 0;">
+                    <div>
+                        <div class="bird-name" style="font-size: 15px; font-weight: bold; color: #333;">${ave.comName}</div>
+                        <div style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 4px;">${ave.sciName}</div>
+                        <div class="bird-date" style="font-size: 11px; color: #999;">Último registro: ${ave.obsDt}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Le pedimos a Wikipedia la foto en segundo plano
+            cargarImagenAve(ave.sciName, ave.speciesCode);
+        });
+        
+        content.innerHTML = htmlLista;
+
+    } catch (error) {
+        console.error(error);
+        content.innerHTML = '<p>Error de conexión con eBird.</p>';
+    }
+}
+
+// 3. Función para cerrar el panel
+function cerrarPanel() {
+    document.getElementById('side-panel').classList.remove('panel-open');
+}

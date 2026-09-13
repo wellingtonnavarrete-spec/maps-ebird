@@ -580,7 +580,7 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 // --- SISTEMA DE ALERTAS DE DESVÍO EN RUTA ---
-let ultimoHotspotAlertado = null;
+ultimoHotspotAlertado = null;
 
 function verificarHotspotsCercanosEnRuta(userLng, userLat) {
   if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;

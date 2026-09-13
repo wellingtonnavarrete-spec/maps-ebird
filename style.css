@@ -300,3 +300,10 @@ body {
 #nav-exit-btn:hover {
     background: #dc2626;
 }
+/* Ocultar por completo las instrucciones y el panel A/B de Mapbox al navegar */
+.mapbox-directions-instructions,
+.mapbox-directions-instructions-wrapper,
+.mapbox-directions-profile-picker,
+.mapboxgl-ctrl-directions {
+    display: none !important;
+}

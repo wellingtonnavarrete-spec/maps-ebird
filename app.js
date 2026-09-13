@@ -50,7 +50,7 @@ map.on('load', async () => {
     map.addSource('ebird-hotspots', {
         type: 'geojson',
         data: hotspotsGeoJSON, 
-        cluster: true,
+        cluster: false,
         clusterMaxZoom: 14,
         clusterRadius: 50
     });

@@ -99,7 +99,13 @@ map.on('load', async () => {
         clusterMaxZoom: 14,
         clusterRadius: 50
     });
-
+// Función global para refrescar los datos del mapa con la lista acumulada
+async function refrescarMapaHotspots(codeRegion) {
+  const geojson = await getEBirdHotspots(codeRegion);
+  if (geojson && map.getSource('ebird-hotspots')) {
+    map.getSource('ebird-hotspots').setData(geojson);
+  }
+}
     // Capa de clústeres
     map.addLayer({
         id: 'clusters',

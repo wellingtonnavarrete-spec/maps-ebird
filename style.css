@@ -381,3 +381,24 @@ body {
 .mapbox-directions-destination {
     display: none !important;
 }
+/* Escalar el panel verde de direcciones de Mapbox */
+.mapboxgl-ctrl-directions {
+    transform: scale(1.3);
+    transform-origin: top left;
+    margin: 15px !important;
+}
+
+/* Agrandar tarjeta de desvío (HUD) */
+.desvio-card-hud {
+    font-size: 1.5rem !important;
+    padding: 20px !important;
+    border-radius: 15px;
+}
+
+/* Agrandar el botón de desvío */
+.desvio-card-hud button {
+    font-size: 1.2rem;
+    padding: 15px 20px;
+    margin-top: 10px;
+    width: 100%;
+}

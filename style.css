@@ -9,3 +9,48 @@ body {
     bottom: 0;
     width: 100%;
 }
+/* Estilos del Panel Lateral */
+#side-panel {
+    position: absolute;
+    top: 0;
+    right: -350px; /* Oculto fuera de la pantalla por defecto */
+    width: 320px;
+    height: 100%;
+    background: white;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+    transition: right 0.3s ease-in-out;
+    z-index: 1000;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    font-family: Arial, sans-serif;
+}
+
+#side-panel.panel-open {
+    right: 0; /* Desliza hacia adentro */
+}
+
+#close-panel {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    float: right;
+    color: #777;
+}
+
+/* Estilos de la lista de aves */
+.bird-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+.bird-name {
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+}
+.bird-date {
+    font-size: 12px;
+    color: #777;
+    margin-top: 4px;
+}

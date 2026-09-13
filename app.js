@@ -617,3 +617,35 @@ function mostrarTarjetaDesvio(hotspot, distanciaKm) {
   card.classList.add('visible');
   setTimeout(() => card.classList.remove('visible'), 12000);
 }
+// --- PRECARGA AUTOMÁTICA DE GPS (SOLUCIÓN SANTIAGO) ---
+function activarGPSInicial() {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                // 1. Mueve la cámara inmediatamente donde esté el usuario
+                map.flyTo({
+                    center: [lng, lat],
+                    zoom: 15.5,
+                    pitch: 65,
+                    essential: true
+                });
+
+                // 2. Carga las aves de esa región automáticamente
+                if (typeof refrescarMapaHotspots === 'function') {
+                    refrescarMapaHotspots(lat, lng);
+                }
+            },
+            (error) => {
+                console.warn("GPS no disponible al inicio:", error.message);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
+}
+
+// Se ejecuta automáticamente al cargar el mapa
+    activarGPSInicial();
+});

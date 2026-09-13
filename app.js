@@ -547,3 +547,46 @@ function buscarHotspotPorNombre(textoBusqueda) {
 window.centrarUbicacion = centrarUbicacion;
 window.cambiarEstiloMapa = cambiarEstiloMapa;
 window.buscarHotspotPorNombre = buscarHotspotPorNombre;
+// Rastreo de posición en tiempo real (GPS continuo)
+let userMarker = null;
+let watchPositionId = null;
+
+function activarRastreoPosicion() {
+    if (!navigator.geolocation) return;
+
+    // Crear elemento visual
+    const el = document.createElement('div');
+    el.className = 'user-location-marker';
+    el.innerHTML = `
+        <div class="user-dot-pulse"></div>
+        <div class="user-dot"></div>
+    `;
+
+    // Escuchar cambios de GPS en tiempo real
+    watchPositionId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const coords = [pos.coords.longitude, pos.coords.latitude];
+
+            if (!userMarker) {
+                userMarker = new mapboxgl.Marker({ element: el })
+                    .setLngLat(coords)
+                    .addTo(map);
+            } else {
+                userMarker.setLngLat(coords);
+            }
+        },
+        (err) => console.error("Error al obtener posición GPS:", err),
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 10000
+        }
+    );
+}
+
+// Iniciar rastreo asegurando que el mapa esté listo
+if (map.loaded()) {
+    activarRastreoPosicion();
+} else {
+    map.once('load', () => activarRastreoPosicion());
+}

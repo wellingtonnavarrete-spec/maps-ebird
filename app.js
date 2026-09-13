@@ -30,9 +30,11 @@ let ultimaVerificacionRegion = 0;
 // 2. Inicialización del mapa
 const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/outdoors-v12',
+    style: 'mapbox://styles/mapbox/satellite-streets-v12', // Satélite con calles
     center: [-72.59, -38.73], // Centro en Temuco
-    zoom: 8
+    zoom: 15.5, // Mucho más cerca para ver las calles
+    pitch: 65,  // Esto inclina el mapa para que parezca GPS de auto
+    antialias: true // Mejora los bordes en 3D
 });
 
 // --- NUEVO: Control de Navegación (Rutas) ---

@@ -106,4 +106,34 @@ map.on('load', async () => {
 
     map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+    // --- NUEVO CÓDIGO: Interacción con los puntos individuales ---
+
+    // 1. Mostrar popup al hacer clic en un hotspot
+    map.on('click', 'unclustered-point', (e) => {
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const locName = e.features[0].properties.locName;
+        const locId = e.features[0].properties.locId;
+
+        // Crear la ventana emergente (Popup)
+        new mapboxgl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(`
+                <div style="padding: 5px;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 15px; color: #333;">${locName}</h3>
+                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #777;">ID: ${locId}</p>
+                    <button onclick="cargarObservaciones('${locId}')" style="background: #11b4da; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%;">
+                        Ver aves recientes
+                    </button>
+                </div>
+            `)
+            .addTo(map);
+    });
+
+    // 2. Cambiar el cursor a la "manito" al pasar sobre un punto
+    map.on('mouseenter', 'unclustered-point', () => { 
+        map.getCanvas().style.cursor = 'pointer'; 
+    });
+    map.on('mouseleave', 'unclustered-point', () => { 
+        map.getCanvas().style.cursor = ''; 
+    });
 });

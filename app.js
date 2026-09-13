@@ -454,20 +454,41 @@ window.buscarHotspotsActivos = buscarHotspotsActivos;
 
 // 1. Centrar el mapa al instante en la ubicación actual del usuario
 function centrarUbicacion() {
-    if (!map) return;
+    console.log("🎯 Solicitando centrado de ubicación...");
+    
+    if (!map) {
+        console.warn("El mapa aún no está listo.");
+        return;
+    }
+
+    // Fallback rápido: Si ya existe un marcador de usuario en pantalla, volar directamente a él
+    if (typeof userMarker !== 'undefined' && userMarker) {
+        const lngLat = userMarker.getLngLat();
+        map.flyTo({ center: [lngLat.lng, lngLat.lat], zoom: 16, pitch: 45, essential: true });
+        return;
+    }
+
+    // Consulta GPS directa con manejo explícito de errores
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
+                const coords = [pos.coords.longitude, pos.coords.latitude];
+                console.log("Ubicación obtenida:", coords);
                 map.flyTo({
-                    center: [pos.coords.longitude, pos.coords.latitude],
+                    center: coords,
                     zoom: 16,
                     pitch: 45,
                     essential: true
                 });
             },
-            (err) => console.warn("Error GPS al centrar:", err),
-            { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
+            (err) => {
+                console.error("Error al obtener ubicación:", err);
+                alert("GPS Bloqueado o Sin Permisos: Asegúrate de estar usando una conexión segura (HTTPS) y tener la ubicación activada.");
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
         );
+    } else {
+        alert("Tu navegador no soporta Geolocalización.");
     }
 }
 

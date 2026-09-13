@@ -353,8 +353,20 @@ async function buscarHotspotsActivos() {
 let watchId = null;
 let currentHeading = 0;
 
+// Variables globales para el seguimiento
+let watchId = null;
+let currentHeading = 0;
+
 function iniciarRutaHacia(lng, lat, nombreDestino) {
-    // 1. Configurar la ruta en Mapbox Directions
+    // 1. Mostrar el HUD de navegación flotante tipo Waze
+    const hud = document.getElementById('nav-hud');
+    if (hud) hud.style.display = 'flex';
+
+    // Actualizar texto del destino en el banner superior
+    const titleInstr = document.getElementById('nav-instruction');
+    if (titleInstr) titleInstr.innerText = `Hacia ${nombreDestino}`;
+
+    // 2. Configurar la ruta en Mapbox Directions
     if (typeof directions !== 'undefined') {
         navigator.geolocation.getCurrentPosition((pos) => {
             directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
@@ -364,12 +376,12 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
         });
     }
 
-    // 2. Limpiar rastreo anterior si existía
+    // 3. Limpiar rastreo anterior si existía
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
     }
 
-    // 3. Brújula para rotación automática
+    // 4. Brújula para rotación automática al girar con el teléfono
     if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientationabsolute', (event) => {
             if (event.alpha !== null) {
@@ -378,7 +390,7 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
         }, true);
     }
 
-    // 4. Tracking GPS en vivo con vista 3D tipo Waze
+    // 5. Tracking GPS en vivo con vista 3D tipo Waze
     if (typeof map !== 'undefined') {
         watchId = navigator.geolocation.watchPosition((position) => {
             const userLng = position.coords.longitude;
@@ -401,6 +413,29 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
             enableHighAccuracy: true,
             maximumAge: 0,
             timeout: 5000
+        });
+    }
+}
+
+// Función para salir de la navegación y ocultar el HUD
+function salirNavegacion() {
+    // Ocultar el HUD
+    const hud = document.getElementById('nav-hud');
+    if (hud) hud.style.display = 'none';
+
+    // Detener el seguimiento del GPS
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+
+    // Volver a la vista normal del mapa
+    if (typeof map !== 'undefined') {
+        map.easeTo({
+            pitch: 0,
+            bearing: 0,
+            zoom: 13,
+            duration: 1000
         });
     }
 }

@@ -547,8 +547,8 @@ function buscarHotspotPorNombre(textoBusqueda) {
 // 9. FUNCIONALIDADES DE CONTROL Y RASTREO GPS
 // ==========================================
 
-let userMarker = null;
-let watchPositionId = null;
+userMarker = null;
+watchPositionId = null;
 
 // Centrar el mapa al instante en la ubicación del marcador activo
 function centrarUbicacion() {
@@ -566,7 +566,7 @@ function centrarUbicacion() {
 }
 
 // Alternar entre estilos de mapa ('streets' vs 'satellite')
-let estiloMapaActual = 'satellite';
+estiloMapaActual = 'satellite';
 
 function cambiarEstiloMapa(tipo) {
     if (tipo === estiloMapaActual || !map) return;

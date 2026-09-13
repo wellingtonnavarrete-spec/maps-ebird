@@ -75,48 +75,48 @@ const directions = new MapboxDirections({
 map.addControl(directions, 'top-left');
 map.addControl(new mapboxgl.NavigationControl());
 
-// 3. Descarga de datos eBird (vía Proxy en URL para evitar error CORS)
+// Helper para garantizar GeoJSON válido siempre
+function obtenerGeoJSONActual() {
+    return {
+        type: 'FeatureCollection',
+        features: hotspotsDataGlobal.map(h => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
+            properties: { locId: h.locId, locName: h.locName }
+        }))
+    };
+}
+
+// 3. Descarga de datos eBird
 async function getEBirdHotspots(codeRegion) {
-  if (!codeRegion || typeof codeRegion !== 'string' || codeRegion.includes('.') || regionesCargadas.has(codeRegion)) {
-      return {
-          type: 'FeatureCollection',
-          features: hotspotsDataGlobal.map(h => ({
-              type: 'Feature',
-              geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
-              properties: { locId: h.locId, locName: h.locName }
-          }))
-      };
-  }
+    if (!codeRegion || typeof codeRegion !== 'string' || codeRegion.includes('.') || regionesCargadas.has(codeRegion)) {
+        return obtenerGeoJSONActual();
+    }
   
-  try {
+    try {
         const response = await fetch(`https://corsproxy.io/?https://api.ebird.org/v2/ref/hotspot/${codeRegion}?fmt=json&key=${ebirdApiKey}`);
 
         if (response.ok) {
             const data = await response.json();
             if (Array.isArray(data)) {
                 regionesCargadas.add(codeRegion);
-                hotspotsDataGlobal = [...hotspotsDataGlobal, ...data];
+                const existentes = new Set(hotspotsDataGlobal.map(h => h.locId));
+                const nuevos = data.filter(h => !existentes.has(h.locId));
+                hotspotsDataGlobal = [...hotspotsDataGlobal, ...nuevos];
             }
         }
     } catch (error) {
         console.error("Error cargando eBird:", error);
     }
 
-    return {
-        type: 'FeatureCollection',
-        features: hotspotsDataGlobal.map(hotspot => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [hotspot.lng, hotspot.lat] },
-            properties: { locId: hotspot.locId, locName: hotspot.locName }
-        }))
-    };
+    return obtenerGeoJSONActual();
 }
 
 async function refrescarMapaHotspots(codeRegion) {
-  const geojson = await getEBirdHotspots(codeRegion);
-  if (geojson && map.getSource('ebird-hotspots')) {
-    map.getSource('ebird-hotspots').setData(geojson);
-  }
+    const geojson = await getEBirdHotspots(codeRegion);
+    if (map.getSource('ebird-hotspots')) {
+        map.getSource('ebird-hotspots').setData(geojson);
+    }
 }
 
 // 4. Carga de datos, Clustering e Interacciones
@@ -567,7 +567,7 @@ function activarGPSInicial() {
     }
 }
 
-// Global Exports
+// Exportar funciones para ámbito global
 window.iniciarRutaHacia = iniciarRutaHacia;
 window.salirNavegacion = salirNavegacion;
 window.cargarObservaciones = cargarObservaciones;

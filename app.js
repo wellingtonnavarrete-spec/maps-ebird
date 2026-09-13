@@ -669,7 +669,7 @@ function activarGPSInicial() {
 
 // Se ejecuta automáticamente al cargar el mapa
     activarGPSInicial();
-});
+
 // --- SIMULADOR DE CONDUCCIÓN PARA PRUEBAS ---
 function simularNavegacionEnVivo(coordenadasRuta) {
     let index = 0;

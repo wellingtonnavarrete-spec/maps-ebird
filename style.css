@@ -210,3 +210,20 @@ body {
 .popup-btn-clean:hover {
     background-color: #0369a1;
 }
+/* --- Botón de navegación "Ir" en el Popup --- */
+.popup-btn-ir {
+    width: 100%;
+    background-color: #10b981;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.popup-btn-ir:hover {
+    background-color: #059669;
+}

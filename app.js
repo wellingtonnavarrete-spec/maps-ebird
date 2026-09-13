@@ -90,7 +90,7 @@ async function getEBirdHotspots(codeRegion) {
 // 4. Carga de datos y clustering en el mapa
 map.on('load', async () => {
     // Obtenemos los datos reales antes de cargar la fuente
-    const hotspotsGeoJSON = await getEBirdHotspots();
+  const hotspotsGeoJSON = await getEBirdHotspots('CL-AR');
 
     map.addSource('ebird-hotspots', {
         type: 'geojson',

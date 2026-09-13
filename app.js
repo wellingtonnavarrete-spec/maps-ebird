@@ -128,29 +128,33 @@ map.on('load', async () => {
         }
     });
 
-    map.on('click', 'unclustered-point', (e) => {
-        const coordinates = e.features[0].geometry.coordinates.slice();
-        const locName = e.features[0].properties.locName;
-        const locId = e.features[0].properties.locId;
-        const lng = coordinates[0];
-        const lat = coordinates[1];
-        const fotoUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lng},${lat},14,0/300x160?access_token=${mapboxgl.accessToken}`;
+   map.on('click', 'unclustered-point', (e) => {
+    const coordinates = e.features[0].geometry.coordinates.slice();
+    const locName = e.features[0].properties.locName;
+    const locId = e.features[0].properties.locId;
+    const lng = coordinates[0];
+    const lat = coordinates[1];
+    const fotoUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lng},${lat},14,0/300x160?access_token=${mapboxgl.accessToken}`;
 
-        const htmlContent = `
-            <div class="popup-card-clean">
-                <img src="${fotoUrl}" class="popup-img-clean" alt="${locName}">
-                <div class="popup-body-clean">
-                    <h3>${locName}</h3>
-                    <div style="display: flex; gap: 8px; flex-direction: column;">
-                        <button class="popup-btn-clean" onclick="cargarObservaciones('${locId}')">🌿 Ver aves recientes</button>
-                        <button class="popup-btn-ir" onclick="iniciarRutaHacia(${lng}, ${lat}, '${locName.replace(/'/g, "\\'")}')">🚗 Ir hacia aquí</button>
-                    </div>
+    // Iconos SVG vectoriales inline
+    const iconBird = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -3px; margin-right: 6px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-5l6 2.5-6 2.5z"/></svg>`;
+    const iconNav = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -3px; margin-right: 6px;"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>`;
+
+    const htmlContent = `
+        <div class="popup-card-clean">
+            <img src="${fotoUrl}" class="popup-img-clean" alt="${locName}">
+            <div class="popup-body-clean">
+                <h3>${locName}</h3>
+                <div style="display: flex; gap: 8px; flex-direction: column;">
+                    <button class="popup-btn-clean" onclick="cargarObservaciones('${locId}')">${iconBird}Ver aves recientes</button>
+                    <button class="popup-btn-ir" onclick="iniciarRutaHacia(${lng}, ${lat}, '${locName.replace(/'/g, "\\'")}')">${iconNav}Ir hacia aquí</button>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
-        new mapboxgl.Popup().setLngLat(coordinates).setHTML(htmlContent).addTo(map);
-    });
+    new mapboxgl.Popup().setLngLat(coordinates).setHTML(htmlContent).addTo(map);
+});
 
     map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
@@ -216,9 +220,11 @@ async function buscarHotspotsActivos() {
     const btn = document.getElementById('btn-radar');
     if (!btn) return;
 
+    const iconFlame = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -2px; margin-right: 6px;"><path d="M13.5 1.5c0 0-2.5 3.5-2.5 6 0 1.38.56 2.63 1.47 3.53C11.53 10.37 10.5 9.17 10.5 7.5c0 0-3.5 3.5-3.5 7.5 0 3.87 3.13 7 7 7s7-3.13 7-7c0-5.5-4.5-9.5-7.5-13.5z"/></svg>`;
+
     if (btn.classList.contains('activo')) {
         btn.classList.remove('activo');
-        btn.innerText = "🔥 Ver activos (Últimos 7 días)";
+        btn.innerHTML = `${iconFlame}Ver activos (Últimos 7 días)`;
         if (map.getLayer('puntos-rojos')) map.removeLayer('puntos-rojos');
         if (map.getSource('activos-source')) map.removeSource('activos-source');
         return;
@@ -260,7 +266,7 @@ async function buscarHotspotsActivos() {
         });
 
         btn.classList.add('activo');
-        btn.innerText = "🔥 Ocultar activos";
+        btn.innerHTML = `${iconFlame}Ocultar activos`;
     } catch (error) {
         btn.innerText = "Error de conexión";
     }
@@ -369,10 +375,19 @@ function mostrarTarjetaDesvio(hotspot, distanciaKm) {
         card.className = 'desvio-card-hud';
         document.body.appendChild(card);
     }
+
+    const iconPin = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -2px; margin-left: 4px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
     const distTexto = distanciaKm < 1 ? `${Math.round(distanciaKm * 1000)} m` : `${distanciaKm.toFixed(1)} km`;
+
     card.innerHTML = `
-        <div class="desvio-info"><span class="desvio-tag">🔥 Hotspot cercano</span><strong>${hotspot.locName}</strong><small>A ${distTexto}</small></div>
-        <button onclick="iniciarRutaHacia(${hotspot.lng}, ${hotspot.lat}, '${hotspot.locName.replace(/'/g, "\\'")}')">Desviarme 📍</button>
+        <div class="desvio-info">
+            <span class="desvio-tag">Hotspot cercano</span>
+            <strong>${hotspot.locName}</strong>
+            <small>A ${distTexto}</small>
+        </div>
+        <button onclick="iniciarRutaHacia(${hotspot.lng}, ${hotspot.lat}, '${hotspot.locName.replace(/'/g, "\\'")}')">
+            Desviarme ${iconPin}
+        </button>
     `;
     card.classList.add('visible');
     setTimeout(() => card.classList.remove('visible'), 12000);

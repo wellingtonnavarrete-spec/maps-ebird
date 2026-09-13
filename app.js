@@ -325,7 +325,7 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     navigator.geolocation.getCurrentPosition((pos) => {
         directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
         directions.setDestination([lng, lat]);
-    }, () => directions.setDestination([lng, lat]), { enableHighAccuracy: true });
+    }, () => directions.setDestination([lng, lat]), { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 });
 
     if (navWatchId !== null) navigator.geolocation.clearWatch(navWatchId);
 
@@ -347,7 +347,7 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
                 navMarker = new mapboxgl.Marker({ element: el }).setLngLat([userLng, userLat]).addTo(map);
             } else { navMarker.setLngLat([userLng, userLat]); }
         }
-    }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true });
+    }, (error) => { if (error.code !== 3) console.log("Error GPS:", error); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 });
 }
 
 function salirNavegacion() {

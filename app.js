@@ -350,16 +350,43 @@ async function buscarHotspotsActivos() {
     }
 }
 function iniciarRutaHacia(lng, lat, nombreDestino) {
-    // 1. Mostrar el HUD de navegación flotante tipo Waze
+    // 1. Ocultar popups y dejar la pantalla limpia
+    const popups = document.getElementsByClassName('mapboxgl-popup');
+    while (popups[0]) {
+        popups[0].remove();
+    }
+    
+    // Ocultar botón de radar si existe
+    const btnRadar = document.getElementById('btn-radar');
+    if (btnRadar) btnRadar.style.display = 'none';
+
+    // 2. Mostrar HUD de conducción
     const hud = document.getElementById('nav-hud');
     if (hud) hud.style.display = 'flex';
 
-    // Actualizar texto del destino en el banner superior
     const titleInstr = document.getElementById('nav-instruction');
     if (titleInstr) titleInstr.innerText = `Hacia ${nombreDestino}`;
 
-    // 2. Configurar la ruta en Mapbox Directions
+    // 3. Calcular ruta real con Mapbox y mostrar tiempo/distancia en vivo
     if (typeof directions !== 'undefined') {
+        directions.on('route', (e) => {
+            if (e.route && e.route.length > 0) {
+                const ruta = e.route[0];
+                const minutos = Math.round(ruta.duration / 60);
+                const km = (ruta.distance / 1000).toFixed(1);
+
+                // Calcular hora estimada de llegada (ETA)
+                const ahora = new Date();
+                ahora.setMinutes(ahora.getMinutes() + minutos);
+                const eta = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const timeEl = document.getElementById('nav-time');
+                const detailsEl = document.getElementById('nav-details');
+                if (timeEl) timeEl.innerText = `${minutos} min`;
+                if (detailsEl) detailsEl.innerText = `${km} km • Llegada ${eta}`;
+            }
+        });
+
         navigator.geolocation.getCurrentPosition((pos) => {
             directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
             directions.setDestination([lng, lat]);
@@ -368,12 +395,12 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
         });
     }
 
-    // 3. Limpiar rastreo anterior si existía
+    // 4. Limpiar rastreo previo
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
     }
 
-    // 4. Brújula para rotación automática al girar con el teléfono
+    // 5. Brújula del móvil
     if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientationabsolute', (event) => {
             if (event.alpha !== null) {
@@ -382,7 +409,7 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
         }, true);
     }
 
-    // 5. Tracking GPS en vivo con vista 3D tipo Waze
+    // 6. Vista 3D centrada en conducir
     if (typeof map !== 'undefined') {
         watchId = navigator.geolocation.watchPosition((position) => {
             const userLng = position.coords.longitude;
@@ -400,7 +427,7 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
                 essential: true
             });
         }, (error) => {
-            console.log("Error GPS en vivo:", error);
+            console.log("Error GPS:", error);
         }, {
             enableHighAccuracy: true,
             maximumAge: 0,
@@ -409,25 +436,29 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     }
 }
 
-// Función para salir de la navegación y ocultar el HUD
 function salirNavegacion() {
-    // Ocultar el HUD
+    // Restaurar HUD y elementos de la pantalla
     const hud = document.getElementById('nav-hud');
     if (hud) hud.style.display = 'none';
 
-    // Detener el seguimiento del GPS
+    const btnRadar = document.getElementById('btn-radar');
+    if (btnRadar) btnRadar.style.display = 'block';
+
+    if (typeof directions !== 'undefined') {
+        directions.removeRoutes();
+    }
+
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
     }
 
-    // Volver a la vista normal del mapa
     if (typeof map !== 'undefined') {
         map.easeTo({
             pitch: 0,
             bearing: 0,
             zoom: 13,
-            duration: 1000
+            duration: 800
         });
     }
 }

@@ -28,20 +28,25 @@
             <p>Selecciona un punto en el mapa...</p>
         </div>
     </div>
-<!-- HUD de Navegación en Ruta (Estilo Waze/Apple Maps) -->
+<!-- HUD de Navegación en Ruta Limpio -->
     <div id="nav-hud" style="display: none;">
         <div id="nav-top-banner">
-            <span style="font-size: 24px;">⬆️</span>
+            <div class="nav-arrow-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                    <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+            </div>
             <div>
-                <div id="nav-instruction" style="font-size: 16px; font-weight: bold;">En ruta hacia el destino</div>
-                <div id="nav-sub-instruction" style="font-size: 13px; opacity: 0.8;">Sigue el camino indicado</div>
+                <div id="nav-instruction" style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px;">En ruta</div>
+                <div id="nav-sub-instruction" style="font-size: 13px; opacity: 0.85;">Sigue el trazado de la ruta</div>
             </div>
         </div>
         
         <div id="nav-bottom-bar">
-            <div id="nav-eta-info">
-                <span style="font-size: 18px; font-weight: bold; color: #34d399;">Calculando...</span>
-                <div style="font-size: 13px; color: #9ca3af;" id="nav-distance-time">GPS en tiempo real</div>
+            <div>
+                <div id="nav-time" style="font-size: 22px; font-weight: 800; color: #34d399; line-height: 1.2;">Calculando...</div>
+                <div id="nav-details" style="font-size: 13px; color: #9ca3af; margin-top: 2px;">Conectando con GPS</div>
             </div>
             <button id="nav-exit-btn" onclick="salirNavegacion()">Salir</button>
         </div>

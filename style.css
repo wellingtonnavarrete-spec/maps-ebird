@@ -480,3 +480,69 @@ body {
     transform: scale(0.92);
     background-color: #f1f5f9;
 }
+/* Selector de Capas Estilo Google Maps */
+.map-style-container {
+    position: fixed;
+    bottom: 25px;
+    left: 20px;
+    display: flex;
+    gap: 8px;
+    z-index: 30;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 6px;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.map-style-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.map-style-btn span {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.style-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-streets {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.icon-satellite {
+    background: #0f172a;
+    color: #38bdf8;
+}
+
+.map-style-btn.active {
+    border-color: #0284c7;
+    background: #f0f9ff;
+}
+
+.map-style-btn.active span {
+    color: #0284c7;
+}
+
+.map-style-btn:active {
+    transform: scale(0.94);
+}

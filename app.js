@@ -270,9 +270,9 @@ async function buscarHotspotsActivos() {
     btn.innerText = "Buscando...";
 
     try {
-        // Traemos todas las observaciones de la región de los últimos 3 días (back=3)
+        // Traemos todas las observaciones de la región de los últimos 7 días (back=3)
         // Nota: Asegúrate de que regionCode esté definido como 'CL-AR' al inicio de tu app.js
-        const response = await fetch(`https://api.ebird.org/v2/data/obs/CL-AR/recent?back=3`, {
+        const response = await fetch(`https://api.ebird.org/v2/data/obs/CL-AR/recent?back=7`, {
             headers: { 'X-eBirdApiToken': ebirdApiKey }
         });
         const observaciones = await response.json();

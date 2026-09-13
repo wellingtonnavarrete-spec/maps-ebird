@@ -602,8 +602,6 @@ function verificarHotspotsCercanosEnRuta(userLng, userLat) {
   }
 }
 
-}
-
 function mostrarTarjetaDesvio(hotspot, distanciaKm) {
   let card = document.getElementById('desvio-card');
   if (!card) {

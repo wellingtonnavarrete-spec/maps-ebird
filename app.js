@@ -406,7 +406,7 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
             const userLng = pos.coords.longitude;
             const userLat = pos.coords.latitude;
             
-            // Forzar la vista 3D de inmediato al iniciar (Propiedades corregidas sin 's')
+            // Forzar la vista 3D de inmediato al iniciar
             map.easeTo({
                 center: [userLng, userLat],
                 zoom: 18.5,

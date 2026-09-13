@@ -137,3 +137,50 @@ map.on('load', async () => {
         map.getCanvas().style.cursor = ''; 
     });
 });
+// --- FUNCIONES DEL PANEL LATERAL ---
+
+// Conectar a la API para traer las aves del hotspot
+async function cargarObservaciones(locId) {
+    const panel = document.getElementById('side-panel');
+    const content = document.getElementById('panel-content');
+    
+    // Desplegar panel y mostrar estado de carga
+    panel.classList.add('panel-open');
+    content.innerHTML = '<p>Cargando aves recientes...</p>';
+
+    try {
+        // Llamada a la API de eBird (Observaciones recientes en un hotspot)
+        const response = await fetch(`https://api.ebird.org/v2/data/obs/${locId}/recent`, {
+            headers: { 'X-eBirdApiToken': ebirdApiKey }
+        });
+        const aves = await response.json();
+
+        if (aves.length === 0) {
+            content.innerHTML = '<p>No hay observaciones en los últimos días.</p>';
+            return;
+        }
+
+        // Armar la lista de aves en HTML
+        let htmlLista = '';
+        aves.forEach(ave => {
+            htmlLista += `
+                <div class="bird-item">
+                    <div class="bird-name">${ave.comName} <i>(${ave.sciName})</i></div>
+                    <div class="bird-date">Visto el: ${ave.obsDt}</div>
+                </div>
+            `;
+        });
+        
+        // Inyectar la lista en el panel
+        content.innerHTML = htmlLista;
+
+    } catch (error) {
+        console.error(error);
+        content.innerHTML = '<p>Error al cargar los datos.</p>';
+    }
+}
+
+// Función para cerrar el panel con el botón "X"
+function cerrarPanel() {
+    document.getElementById('side-panel').classList.remove('panel-open');
+}

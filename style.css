@@ -54,28 +54,32 @@ body {
     color: #777;
     margin-top: 4px;
 }
-/* --- Botón de Radar flotante en la parte inferior --- */
 #btn-radar {
     position: absolute;
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
-    background-color: #ef4444;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 30px;
-    font-weight: 700;
+    padding: 14px 28px;
+    border-radius: 40px;
+    font-weight: 600;
     font-size: 14px;
+    letter-spacing: 0.3px;
     cursor: pointer;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 #btn-radar:hover {
-    background-color: #dc2626;
-    transform: translateX(-50%) scale(1.05);
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 14px 30px rgba(239, 68, 68, 0.5);
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
 }
 /* --- Estilo moderno para los Popups de Mapbox --- */
 .mapboxgl-popup-content {

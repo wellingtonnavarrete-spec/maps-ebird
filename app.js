@@ -51,6 +51,13 @@ map.addControl(directions, 'top-left');
 // Control de zoom estándar del mapa
 map.addControl(new mapboxgl.NavigationControl());
 
+// Función global para refrescar los datos del mapa con la lista acumulada
+async function refrescarMapaHotspots(codeRegion) {
+  const geojson = await getEBirdHotspots(codeRegion);
+  if (geojson && map.getSource('ebird-hotspots')) {
+    map.getSource('ebird-hotspots').setData(geojson);
+  }
+}
 // 3. Función para descargar y transformar datos de eBird a GeoJSON
 async function getEBirdHotspots(codeRegion) {
   // 1. Si la región ya se descargó previamente, no la volvemos a pedir
@@ -99,13 +106,7 @@ map.on('load', async () => {
         clusterMaxZoom: 14,
         clusterRadius: 50
     });
-// Función global para refrescar los datos del mapa con la lista acumulada
-async function refrescarMapaHotspots(codeRegion) {
-  const geojson = await getEBirdHotspots(codeRegion);
-  if (geojson && map.getSource('ebird-hotspots')) {
-    map.getSource('ebird-hotspots').setData(geojson);
-  }
-}
+  
     // Capa de clústeres
     map.addLayer({
         id: 'clusters',

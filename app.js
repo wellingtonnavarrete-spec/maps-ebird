@@ -70,39 +70,48 @@ async function refrescarMapaHotspots(codeRegion) {
   }
 }
 // 3. Función para descargar y transformar datos de eBird a GeoJSON
-async function getEBirdHotspots(codeRegion) {
-  // 1. Si la región ya se descargó previamente, no la volvemos a pedir
-  if (regionesCargadas.has(codeRegion)) return null;
+aasync function getEBirdHotspots(codeRegion) {
+    if (regionesCargadas.has(codeRegion)) return null;
 
-  try {
-    const response = await fetch(`https://api.ebird.org/v2/ref/hotspot/${codeRegion}?fmt=json`, {
-      headers: { 'X-eBirdApiToken': ebirdApiKey }
-    });
-    const data = await response.json();
-    regionesCargadas.add(codeRegion);
+    try {
+        const response = await fetch(`https://api.ebird.org/v2/ref/hotspot/${codeRegion}?fmt=json`, {
+            headers: { 'X-eBirdToken': ebirdApiKey }
+        });
 
-    // 2. Acumulamos los nuevos datos con los de regiones anteriores
-    hotspotsDataGlobal = [...hotspotsDataGlobal, ...data];
-
-    // 3. Transformar al formato GeoJSON para Mapbox usando la lista global acumulada
-    return {
-      type: 'FeatureCollection',
-      features: hotspotsDataGlobal.map(hotspot => ({
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [hotspot.lng, hotspot.lat]
-        },
-        properties: {
-          locId: hotspot.locId,
-          locName: hotspot.locName
+        // Validar que la respuesta sea exitosa
+        if (!response.ok) {
+            console.warn(`Respuesta no válida de eBird (${response.status}) para la región: ${codeRegion}`);
+            return { type: 'FeatureCollection', features: [] };
         }
-      }))
-    };
-  } catch (error) {
-    console.error("Error cargando eBird:", error);
-    return { type: 'FeatureCollection', features: [] };
-  }
+
+        const data = await response.json();
+
+        // Validar que data sea una lista ejecutable
+        if (Array.isArray(data)) {
+            regionesCargadas.add(codeRegion);
+            hotspotsDataGlobal = [...hotspotsDataGlobal, ...data];
+        }
+
+        // Transformar al formato GeoJSON para Mapbox
+        return {
+            type: 'FeatureCollection',
+            features: hotspotsDataGlobal.map(hotspot => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [hotspot.lng, hotspot.lat]
+                },
+                properties: {
+                    locId: hotspot.locId,
+                    locName: hotspot.locName
+                }
+            }))
+        };
+    } catch (error) {
+        console.error("Error cargando eBird:", error);
+        return { type: 'FeatureCollection', features: [] };
+    }
+}
 }
 
 // 4. Carga de datos y clustering en el mapa

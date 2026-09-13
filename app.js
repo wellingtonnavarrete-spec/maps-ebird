@@ -349,34 +349,55 @@ async function buscarHotspotsActivos() {
         btn.innerText = "Error de conexión";
     }
 }
-// --- Iniciar Navegación HUD Estilo Waze ---
-window.iniciarRutaHacia = function(lng, lat, nombreDestino) {
-    // 1. Limpiar pantalla
+// ==========================================
+// MÓDULO DE NAVEGACIÓN HUD (VERSIÓN LIMPIA)
+// ==========================================
+
+// Variables encapsuladas (sin enredos globales)
+let navWatchId = null;
+let navCurrentHeading = 0;
+
+// Escuchar la brújula de forma independiente
+if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientationabsolute', (event) => {
+        if (event.alpha !== null) {
+            navCurrentHeading = 360 - event.alpha;
+        }
+    }, true);
+}
+
+// Función principal de navegación
+function iniciarRutaHacia(lng, lat, nombreDestino) {
+    // 1. Ocultar paneles de Mapbox por la fuerza
+    const mapboxPanels = document.querySelectorAll('.mapboxgl-ctrl-directions, .mapbox-directions-component, .mapbox-directions-route-summary');
+    mapboxPanels.forEach(p => p.style.setProperty('display', 'none', 'important'));
+
+    // 2. Limpiar popups y radar
     const popups = document.getElementsByClassName('mapboxgl-popup');
-    while (popups[0]) {
-        popups[0].remove();
-    }
+    while (popups[0]) popups[0].remove();
+    
     const btnRadar = document.getElementById('btn-radar');
     if (btnRadar) btnRadar.style.display = 'none';
 
-    // 2. Mostrar HUD
+    // 3. Mostrar el HUD
     const hud = document.getElementById('nav-hud');
     if (hud) hud.style.display = 'flex';
+    
     const titleInstr = document.getElementById('nav-instruction');
     if (titleInstr) titleInstr.innerText = `Hacia ${nombreDestino}`;
 
-    // 3. ¡INCLINACIÓN INMEDIATA! (El mapa reacciona antes de esperar al GPS)
+    // 4. ¡Inclinación Inmediata a 3D!
     if (typeof map !== 'undefined') {
         map.easeTo({
             zoom: 18.5,
             pitch: 65,
-            bearing: window.currentHeading,
+            bearing: navCurrentHeading, // Usamos la variable limpia local
             duration: 1000,
             essential: true
         });
     }
 
-    // 4. Calcular ruta con Mapbox
+    // 5. Calcular la ruta y trazarla
     if (typeof directions !== 'undefined') {
         directions.on('route', (e) => {
             if (e.route && e.route.length > 0) {
@@ -395,45 +416,24 @@ window.iniciarRutaHacia = function(lng, lat, nombreDestino) {
             }
         });
 
-        // Buscar el GPS y trazar la línea azul
         navigator.geolocation.getCurrentPosition((pos) => {
-            const userLng = pos.coords.longitude;
-            const userLat = pos.coords.latitude;
-            
-            directions.setOrigin([userLng, userLat]);
+            directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
             directions.setDestination([lng, lat]);
-            
-            // Centrar la cámara en el usuario ahora que tenemos la ubicación
-            if (typeof map !== 'undefined') {
-                map.easeTo({ center: [userLng, userLat], essential: true });
-            }
         }, () => {
             directions.setDestination([lng, lat]);
         }, { enableHighAccuracy: true });
     }
 
-    // 5. Brújula del móvil
-    if (window.watchId !== null) {
-        navigator.geolocation.clearWatch(window.watchId);
-    }
-    if (window.DeviceOrientationEvent) {
-        window.addEventListener('deviceorientationabsolute', (event) => {
-            if (event.alpha !== null) {
-                window.currentHeading = 360 - event.alpha;
-            }
-        }, true);
-    }
+    // 6. Iniciar seguimiento GPS
+    if (navWatchId !== null) navigator.geolocation.clearWatch(navWatchId);
+    
+    navWatchId = navigator.geolocation.watchPosition((position) => {
+        const gpsHeading = position.coords.heading;
+        const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : navCurrentHeading;
 
-    // 6. Seguimiento continuo de la cámara
-    if (typeof map !== 'undefined') {
-        window.watchId = navigator.geolocation.watchPosition((position) => {
-            const userLng = position.coords.longitude;
-            const userLat = position.coords.latitude;
-            const gpsHeading = position.coords.heading;
-            const bearingToUse = (gpsHeading !== null && !isNaN(gpsHeading)) ? gpsHeading : currentHeading;
-
+        if (typeof map !== 'undefined') {
             map.easeTo({
-                center: [userLng, userLat],
+                center: [position.coords.longitude, position.coords.latitude],
                 zoom: 18.5,
                 pitch: 65,
                 bearing: bearingToUse,
@@ -441,39 +441,30 @@ window.iniciarRutaHacia = function(lng, lat, nombreDestino) {
                 easing: (t) => t,
                 essential: true
             });
-        }, (error) => {
-            console.log("Error GPS:", error);
-        }, {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 5000
-        });
-    }
-};
+        }
+    }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+}
 
-// --- Salir de la Navegación ---
-window.salirNavegacion = function() {
+// Función para salir
+function salirNavegacion() {
     const hud = document.getElementById('nav-hud');
     if (hud) hud.style.display = 'none';
-
+    
     const btnRadar = document.getElementById('btn-radar');
     if (btnRadar) btnRadar.style.display = 'block';
 
-    if (typeof directions !== 'undefined') {
-        directions.removeRoutes();
+    if (typeof directions !== 'undefined') directions.removeRoutes();
+    
+    if (navWatchId !== null) {
+        navigator.geolocation.clearWatch(navWatchId);
+        navWatchId = null;
     }
-
-    if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-    }
-
+    
     if (typeof map !== 'undefined') {
-        map.easeTo({
-            pitch: 0,
-            bearing: 0,
-            zoom: 13,
-            duration: 800
-        });
+        map.easeTo({ pitch: 0, bearing: 0, zoom: 13, duration: 800 });
     }
-};
+}
+
+// Exponer SOLO las funciones al HTML para que los botones funcionen
+window.iniciarRutaHacia = iniciarRutaHacia;
+window.salirNavegacion = salirNavegacion;

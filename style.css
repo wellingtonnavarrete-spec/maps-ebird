@@ -227,61 +227,76 @@ body {
 .popup-btn-ir:hover {
     background-color: #059669;
 }
-/* --- HUD de Navegación Flotante --- */
+/* --- HUD de Navegación Profesional Limpio --- */
+.mapbox-directions-instructions,
+.mapbox-directions-instructions-wrapper,
+.mapbox-directions-profile-picker {
+    display: none !important;
+}
+
 #nav-hud {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none; /* Permite tocar el mapa detrás si es necesario */
+    pointer-events: none;
     z-index: 3000;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 15px;
+    padding: 16px;
     box-sizing: border-box;
 }
 
 #nav-top-banner {
-    background-color: #064e3b;
-    color: white;
-    padding: 16px 20px;
-    border-radius: 16px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    background: #064e3b;
+    color: #ffffff;
+    padding: 14px 18px;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
     pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 15px;
-    border: 1px solid rgba(255,255,255,0.1);
+    gap: 14px;
+}
+
+.nav-arrow-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 #nav-bottom-bar {
-    background-color: #111827;
-    color: white;
-    padding: 18px 24px;
+    background: #111827;
+    color: #ffffff;
+    padding: 16px 20px;
     border-radius: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 -6px 25px rgba(0,0,0,0.5);
+    box-shadow: 0 -8px 28px rgba(0,0,0,0.45);
     pointer-events: auto;
-    border: 1px solid rgba(255,255,255,0.1);
 }
 
 #nav-exit-btn {
-    background-color: #ef4444;
-    color: white;
+    background: #ef4444;
+    color: #ffffff;
     border: none;
-    padding: 12px 24px;
+    padding: 12px 22px;
     border-radius: 14px;
-    font-weight: bold;
-    font-size: 16px;
+    font-weight: 700;
+    font-size: 15px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
     transition: background 0.2s;
 }
 
 #nav-exit-btn:hover {
-    background-color: #dc2626;
+    background: #dc2626;
 }

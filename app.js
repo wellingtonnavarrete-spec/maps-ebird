@@ -1,32 +1,61 @@
-// 1. Configuración de credenciales
-mapboxgl.accessToken = 'TU_TOKEN_DE_MAPBOX_AQUI';
+// 1. Credenciales
+mapboxgl.accessToken = 'pk.eyJ1Ijoid2VsbHluYXZhcnJldGUiLCJhIjoiY210emJ5YmF1MGkwNTJ3cHM3bjN5MXNsMyJ9.aMygGNT7FYaNhMw1wMmeAw';
+const ebirdApiKey = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
+const regionCode = 'CL-AR'; // La Araucanía
 
 // 2. Inicialización del mapa
 const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/outdoors-v12', // Estilo ideal para ver relieve/naturaleza
-    center: [-72.59, -38.73], // Coordenadas de ejemplo (Temuco)
+    style: 'mapbox://styles/mapbox/outdoors-v12',
+    center: [-72.59, -38.73], // Centro en Temuco
     zoom: 8
 });
 
-// Controles de navegación (zoom y rotación)
 map.addControl(new mapboxgl.NavigationControl());
 
-// 3. Carga de datos y clustering
-map.on('load', () => {
-    // NOTA: Aquí asumo que tienes tu GeoJSON de hotspots guardado en una variable 
-    // o que lo cargas desde un archivo local llamado hotspots.geojson.
-    // Para V1, es mejor tener un archivo estático.
-    
+// 3. Función para descargar y transformar datos de eBird a GeoJSON
+async function getEBirdHotspots() {
+    try {
+        const response = await fetch(`https://api.ebird.org/v2/ref/hotspot/${regionCode}?fmt=json`, {
+            headers: { 'X-eBirdApiToken': ebirdApiKey }
+        });
+        const data = await response.json();
+        
+        // Transformar la respuesta al formato GeoJSON para Mapbox
+        return {
+            type: 'FeatureCollection',
+            features: data.map(hotspot => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [hotspot.lng, hotspot.lat]
+                },
+                properties: {
+                    locId: hotspot.locId,
+                    locName: hotspot.locName
+                }
+            }))
+        };
+    } catch (error) {
+        console.error("Error cargando eBird:", error);
+        return { type: 'FeatureCollection', features: [] };
+    }
+}
+
+// 4. Carga de datos y clustering en el mapa
+map.on('load', async () => {
+    // Obtenemos los datos reales antes de cargar la fuente
+    const hotspotsGeoJSON = await getEBirdHotspots();
+
     map.addSource('ebird-hotspots', {
         type: 'geojson',
-        data: 'hotspots.geojson', // Puede ser una URL o ruta local
+        data: hotspotsGeoJSON, 
         cluster: true,
         clusterMaxZoom: 14,
         clusterRadius: 50
     });
 
-    // Capa de los círculos agrupados
+    // Capa de clústeres
     map.addLayer({
         id: 'clusters',
         type: 'circle',
@@ -38,7 +67,7 @@ map.on('load', () => {
         }
     });
 
-    // Capa de los números dentro de los grupos
+    // Capa de números en clústeres
     map.addLayer({
         id: 'cluster-count',
         type: 'symbol',
@@ -51,7 +80,7 @@ map.on('load', () => {
         }
     });
 
-    // Capa de los puntos individuales
+    // Capa de hotspots individuales
     map.addLayer({
         id: 'unclustered-point',
         type: 'circle',
@@ -65,7 +94,7 @@ map.on('load', () => {
         }
     });
 
-    // 4. Interacciones
+    // 5. Interacciones (Zoom al hacer clic)
     map.on('click', 'clusters', (e) => {
         const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
         const clusterId = features[0].properties.cluster_id;

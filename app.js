@@ -454,15 +454,20 @@ window.buscarHotspotsActivos = buscarHotspotsActivos;
 
 // 1. Centrar el mapa al instante en la ubicación actual del usuario
 function centrarUbicacion() {
+    if (!map) return;
     if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            map.flyTo({
-                center: [pos.coords.longitude, pos.coords.latitude],
-                zoom: 16,
-                pitch: 45,
-                essential: true
-            });
-        }, (err) => console.warn("No se pudo obtener la ubicación actual:", err));
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                map.flyTo({
+                    center: [pos.coords.longitude, pos.coords.latitude],
+                    zoom: 16,
+                    pitch: 45,
+                    essential: true
+                });
+            },
+            (err) => console.warn("Error GPS al centrar:", err),
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
+        );
     }
 }
 

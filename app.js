@@ -122,37 +122,34 @@ map.on('load', async () => {
     map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
     // --- NUEVO CÓDIGO: Interacción con los puntos individuales ---
 
-    // 1. Mostrar popup al hacer clic en un hotspot
+// 1. Mostrar popup limpio al hacer clic en un hotspot
     map.on('click', 'unclustered-point', (e) => {
         const coordinates = e.features[0].geometry.coordinates.slice();
         const locName = e.features[0].properties.locName;
         const locId = e.features[0].properties.locId;
 
-        // Crear la ventana emergente (Popup)
-// Crear la ventana emergente (Popup con foto satelital)
-    const lng = coordinates[0];
-    const lat = coordinates[1];
-    const staticImgUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lng},${lat},14,0/240x110?access_token=${mapboxgl.accessToken}`;
+        // Generar la foto aérea/paisaje de respaldo del sector
+        const lng = coordinates[0];
+        const lat = coordinates[1];
+        const fotoUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lng},${lat},14,0/300x160?access_token=${mapboxgl.accessToken}`;
 
-    const htmlContent = `
-        <div class="popup-card">
-            <img src="${staticImgUrl}" class="popup-img" alt="Vista aérea">
-            <div class="popup-body">
-                <h3>${locName}</h3>
-                <p>ID: ${locId}</p>
-                <button class="popup-btn" onclick="cargarObservaciones('${locId}')">
-                    🌿 Ver aves recientes
-                </button>
+        const htmlContent = `
+            <div class="popup-card-clean">
+                <img src="${fotoUrl}" class="popup-img-clean" alt="${locName}">
+                <div class="popup-body-clean">
+                    <h3>${locName}</h3>
+                    <button class="popup-btn-clean" onclick="cargarObservaciones('${locId}')">
+                        🌿 Ver aves recientes
+                    </button>
+                </div>
             </div>
-        </div>
-    `;
+        `;
 
-    new mapboxgl.Popup()
-        .setLngLat(coordinates)
-        .setHTML(htmlContent)
-        .addTo(map);
-});
-
+        new mapboxgl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(htmlContent)
+            .addTo(map);
+    });
     // 2. Cambiar el cursor a la "manito" al pasar sobre un punto
     map.on('mouseenter', 'unclustered-point', () => { 
         map.getCanvas().style.cursor = 'pointer'; 

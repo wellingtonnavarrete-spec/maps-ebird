@@ -477,9 +477,9 @@ verificarHotspotsCercanosEnRuta(userLng, userLat);
       el.className = 'nav-marker';
       navMarker = new mapboxgl.Marker({ element: el })
         .setLngLat([userLng, userLat])
-        .addTo(map);
+       .addTo(map);
     } else {
-      navMarker.setLngLat([userLng, userLat]);
+navMarker.setLngLat([userLng, userLat]);
     }
   }
 }, (error) => console.log("Error GPS:", error), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });

@@ -55,8 +55,12 @@
             <button id="nav-exit-btn" onclick="salirNavegacion()">Salir</button>
         </div>
     </div>
-    <!-- Botón Flotante para Centrar Ubicación -->
-<button id="btn-centrar" class="btn-floating-location" onclick="centrarUbicacion()" title="Centrar ubicación">🎯</button>
+    <!-- Botón Flotante para Centrar Ubicación (Oculto por defecto) -->
+<button id="btn-centrar" class="btn-floating-location" onclick="centrarUbicacion()" title="Centrar ubicación" style="display: none;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#1e293b">
+        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+    </svg>
+</button>
     <!-- Mapbox GL JS -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <!-- Tu código principal -->

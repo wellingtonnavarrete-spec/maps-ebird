@@ -318,9 +318,10 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     document.querySelectorAll('.mapboxgl-ctrl-directions').forEach(p => p.style.setProperty('display', 'none', 'important'));
     while (document.getElementsByClassName('mapboxgl-popup')[0]) document.getElementsByClassName('mapboxgl-popup')[0].remove();
     
-    if (document.getElementById('btn-radar')) document.getElementById('btn-radar').style.display = 'none';
-    if (document.getElementById('nav-hud')) document.getElementById('nav-hud').style.display = 'flex';
-    if (document.getElementById('nav-instruction')) document.getElementById('nav-instruction').innerText = `Hacia ${nombreDestino}`;
+   if (document.getElementById('btn-radar')) document.getElementById('btn-radar').style.display = 'none';
+if (document.getElementById('nav-hud')) document.getElementById('nav-hud').style.display = 'flex';
+if (document.getElementById('btn-centrar')) document.getElementById('btn-centrar').style.display = 'flex';
+if (document.getElementById('nav-instruction')) document.getElementById('nav-instruction').innerText = `Hacia ${nombreDestino}`;
 
     navigator.geolocation.getCurrentPosition((pos) => {
         directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
@@ -368,6 +369,7 @@ directions.on('route', (e) => {
 
 function salirNavegacion() {
     if (document.getElementById('nav-hud')) document.getElementById('nav-hud').style.display = 'none';
+    if (document.getElementById('btn-centrar')) document.getElementById('btn-centrar').style.display = 'none';
     if (document.getElementById('btn-radar')) document.getElementById('btn-radar').style.display = 'block';
     if (typeof directions !== 'undefined') directions.removeRoutes();
     if (navWatchId !== null) { navigator.geolocation.clearWatch(navWatchId); navWatchId = null; }

@@ -370,7 +370,7 @@ window.iniciarRutaHacia = function(lng, lat, nombreDestino) {
         map.easeTo({
             zoom: 18.5,
             pitch: 65,
-            bearing: currentHeading,
+            bearing: window.currentHeading,
             duration: 1000,
             essential: true
         });

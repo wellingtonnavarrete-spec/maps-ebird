@@ -579,28 +579,6 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
-// --- SISTEMA DE ALERTAS DE DESVÍO EN RUTA ---
-
-function verificarHotspotsCercanosEnRuta(userLng, userLat) {
-  if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;
-
-  const RADIO_ALERTA_KM = 1.5; // Distancia máxima para alertar desvío
-  let hotspotCercano = null;
-  let menorDistancia = RADIO_ALERTA_KM;
-
-  hotspotsDataGlobal.forEach(spot => {
-    const dist = calcularDistanciaKm(userLat, userLng, spot.lat, spot.lng);
-    if (dist < menorDistancia) {
-      menorDistancia = dist;
-      hotspotCercano = spot;
-    }
-  });
-
-  if (hotspotCercano && hotspotCercano.locId !== ultimoHotspotAlertado) {
-    ultimoHotspotAlertado = hotspotCercano.locId;
-    mostrarTarjetaDesvio(hotspotCercano, menorDistancia);
-  }
-}
 
 function mostrarTarjetaDesvio(hotspot, distanciaKm) {
   let card = document.getElementById('desvio-card');

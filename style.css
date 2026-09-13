@@ -402,3 +402,66 @@ body {
     margin-top: 10px;
     width: 100%;
 }
+/* Toolbar Flotante superior */
+.top-controls {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+    display: flex;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Panel Lateral deslizante */
+#side-panel {
+    position: fixed;
+    top: 0; right: -360px;
+    width: 320px; height: 100vh;
+    background: #fff;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.2);
+    transition: right 0.3s ease;
+    z-index: 20;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+#side-panel.panel-open { right: 0; }
+
+/* HUD de Navegación en Ruta */
+#nav-hud {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    width: 90%; max-width: 420px;
+    background: #1e293b; color: #fff;
+    border-radius: 16px; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.hud-metrics { display: flex; justify-content: space-between; align-items: center; }
+.speedometer { font-size: 28px; font-weight: bold; color: #38bdf8; }
+
+/* Tarjetas de Desvío (Popups dinámicos) */
+.desvio-card-hud {
+    position: fixed; top: 80px; left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: #0f172a; color: #fff;
+    padding: 12px 18px; border-radius: 30px;
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; transition: all 0.4s ease; z-index: 25;
+}
+
+.desvio-card-hud.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Indicador de posición GPS en vivo */
+.nav-marker {
+    width: 22px; height: 22px;
+    background-color: #007cbf;
+    border: 3px solid #fff; border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0,124,191,0.8);
+}

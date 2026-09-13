@@ -1,7 +1,31 @@
 // 1. Credenciales
 mapboxgl.accessToken = 'pk.eyJ1Ijoid2VsbHluYXZhcnJldGUiLCJhIjoiY210emQwbjBoMG9hbDJ5b2t0MHcxc3BkbyJ9.j_-CVMex9D8_qx_y1wPnJg';
 const ebirdApiKey = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
+// Diccionario completo de regiones de Chile
+const REGIONES_CHILE = {
+  'CL-AP': { nombre: 'Arica y Parinacota' },
+  'CL-TA': { nombre: 'Tarapacá' },
+  'CL-AN': { nombre: 'Antofagasta' },
+  'CL-AT': { nombre: 'Atacama' },
+  'CL-CO': { nombre: 'Coquimbo' },
+  'CL-VS': { nombre: 'Valparaíso' },
+  'CL-RM': { nombre: 'Metropolitana' },
+  'CL-LI': { nombre: 'O\'Higgins' },
+  'CL-ML': { nombre: 'Maule' },
+  'CL-NB': { nombre: 'Ñuble' },
+  'CL-BI': { nombre: 'Bío-Bío' },
+  'CL-AR': { nombre: 'La Araucanía' },
+  'CL-LR': { nombre: 'Los Ríos' },
+  'CL-LL': { nombre: 'Los Lagos' },
+  'CL-AI': { nombre: 'Aysén' },
+  'CL-MA': { nombre: 'Magallanes' }
+};
 
+// Variables para el control dinámico de regiones
+let regionActual = null;
+let regionManual = false;
+const regionesCargadas = new Set();
+let hotspotsDataGlobal = [];
 
 // 2. Inicialización del mapa
 const map = new mapboxgl.Map({

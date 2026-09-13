@@ -413,20 +413,20 @@ window.iniciarRutaHacia = function(lng, lat, nombreDestino) {
     }
 
     // 5. Brújula del móvil
-    if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
+    if (window.watchId !== null) {
+        navigator.geolocation.clearWatch(window.watchId);
     }
     if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientationabsolute', (event) => {
             if (event.alpha !== null) {
-                currentHeading = 360 - event.alpha;
+                window.currentHeading = 360 - event.alpha;
             }
         }, true);
     }
 
     // 6. Seguimiento continuo de la cámara
     if (typeof map !== 'undefined') {
-        watchId = navigator.geolocation.watchPosition((position) => {
+        window.watchId = navigator.geolocation.watchPosition((position) => {
             const userLng = position.coords.longitude;
             const userLat = position.coords.latitude;
             const gpsHeading = position.coords.heading;

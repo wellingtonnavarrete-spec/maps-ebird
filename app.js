@@ -328,7 +328,23 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
     }, () => directions.setDestination([lng, lat]), { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 });
 
     if (navWatchId !== null) navigator.geolocation.clearWatch(navWatchId);
+directions.on('route', (e) => {
+        if (e.route && e.route.length > 0) {
+            const ruta = e.route[0];
+            const minutos = Math.round(ruta.duration / 60);
+            const km = (ruta.distance / 1000).toFixed(1);
 
+            const ahora = new Date();
+            ahora.setMinutes(ahora.getMinutes() + minutos);
+            const horaLlegada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const timeEl = document.getElementById('nav-time');
+            const detailsEl = document.getElementById('nav-details');
+            
+            if (timeEl) timeEl.innerText = `${minutos} min`;
+            if (detailsEl) detailsEl.innerText = `${km} km • Llegada ${horaLlegada}`;
+        }
+    });
     navWatchId = navigator.geolocation.watchPosition((position) => {
         const userLng = position.coords.longitude;
         const userLat = position.coords.latitude;

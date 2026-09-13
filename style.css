@@ -375,3 +375,8 @@ body {
     border-bottom: 16px solid white;
     transform: translateY(-2px); /* Centra la flecha un poquito más arriba */
 }
+/* Ocultar los marcadores 'A' (Origen) y 'B' (Destino) que pone Mapbox por defecto */
+.mapbox-directions-origin,
+.mapbox-directions-destination {
+    display: none !important;
+}

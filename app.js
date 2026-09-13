@@ -127,7 +127,6 @@ async function getEBirdHotspots(codeRegion) {
         return { type: 'FeatureCollection', features: [] };
     }
 }
-}
 
 // 4. Carga de datos y clustering en el mapa
 map.on('load', async () => {

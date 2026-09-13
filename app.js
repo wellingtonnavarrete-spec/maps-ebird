@@ -1,7 +1,7 @@
 // 1. Credenciales
 mapboxgl.accessToken = 'pk.eyJ1Ijoid2VsbHluYXZhcnJldGUiLCJhIjoiY210emQwbjBoMG9hbDJ5b2t0MHcxc3BkbyJ9.j_-CVMex9D8_qx_y1wPnJg';
 const ebirdApiKey = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
-const regionCode = 'CL-AR'; // La Araucanía
+
 
 // 2. Inicialización del mapa
 const map = new mapboxgl.Map({

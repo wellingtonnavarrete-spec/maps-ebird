@@ -295,6 +295,7 @@ body {
     font-size: 15px;
     cursor: pointer;
     transition: background 0.2s;
+}
 #nav-top-banner {
     background: #064e3b;
     color: #ffffff;

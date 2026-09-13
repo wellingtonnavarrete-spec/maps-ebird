@@ -1,5 +1,5 @@
 // 1. Credenciales y Configuración
-mapboxgl.accessToken = 'pk.eyJ1Ijoid2VsbHluYXZhcnJldGUiLCJhIjoiY210emQwbjBoMG9hbDJ5b2t0MHcxc3BkbyJ9.j_-CVMex9D8_qx_y1wPnJg';
+mapboxgl.accessToken = 'pk.eyJ1IjoiZ2VsbHVYXzhCNXJldGJUIiwiYSI6ImNsR2ZmMWRhYzIxMXEzc3NkdGVyZTBmYXAifQ.j_-CVmex9D8_qx_y1WpnJg'.trim()
 const ebirdApiKey = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
 
 // Diccionario completo de regiones de Chile

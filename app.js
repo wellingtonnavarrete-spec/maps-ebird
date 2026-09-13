@@ -350,7 +350,6 @@ async function buscarHotspotsActivos() {
     }
 }
 // Variables globales para el seguimiento
-let watchId = null;
 let currentHeading = 0;
 
 // Variables globales para el seguimiento

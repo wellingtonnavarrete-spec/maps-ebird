@@ -26,7 +26,7 @@ let regionActual = null;
 let regionManual = false;
 const regionesCargadas = new Set();
 let hotspotsDataGlobal = [];
-
+let ultimaVerificacionRegion = 0;
 // 2. Inicialización del mapa
 const map = new mapboxgl.Map({
     container: 'map',

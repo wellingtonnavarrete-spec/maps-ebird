@@ -349,3 +349,20 @@ async function buscarHotspotsActivos() {
         btn.innerText = "Error de conexión";
     }
 }
+// Función para activar la ruta y el seguimiento hacia el hotspot seleccionado
+function iniciarRutaHacia(lng, lat, nombreDestino) {
+    if (typeof directions !== 'undefined') {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const userLng = position.coords.longitude;
+            const userLat = position.coords.latitude;
+            directions.setOrigin([userLng, userLat]);
+            directions.setDestination([lng, lat]);
+        }, () => {
+            directions.setDestination([lng, lat]);
+        });
+    }
+
+    if (typeof geolocateControl !== 'undefined') {
+        geolocateControl.trigger();
+    }
+}

@@ -11,6 +11,15 @@
 <body>
     <div id="map"></div>
 
+<!-- NUEVO: Panel lateral oculto -->
+<div id="side-panel" class="panel-hidden">
+    <button id="close-panel" onclick="cerrarPanel()">✖</button>
+    <h2>Observaciones Recientes</h2>
+    <div id="panel-content">
+        <p>Selecciona un punto en el mapa...</p>
+    </div>
+</div>
+
     <!-- Mapbox GL JS -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <!-- Tu código principal -->

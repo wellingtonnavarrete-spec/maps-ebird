@@ -953,13 +953,53 @@ async function toggleBencinerasCercanas() {
 }
 let desvioActivo = null;
 
-let desvioActivo = null;
-
 function tomarDesvioEstacion(lng, lat, nombre) {
     if (!destinoActivo) {
         iniciarRutaHacia(lng, lat, nombre);
         return;
     }
+
+    desvioActivo = { lng, lat, nombre };
+
+    const aplicarRutaConDesvio = (origenLngLat) => {
+        if (typeof directions !== 'undefined') {
+            const desvio = [lng, lat];
+            const destino = [destinoActivo.lng, destinoActivo.lat];
+
+            directions.setOrigin(origenLngLat);
+            directions.setDestination(destino);
+            directions.addWaypoint(0, desvio);
+
+            const subEl = document.getElementById('nav-sub-instruction');
+            if (subEl) subEl.innerText = `Desvío programado: Parada en ${nombre}`;
+
+            // Punto 2: Hacer visible el botón de cancelar desvío en el HUD
+            const btnCancelar = document.getElementById('btn-cancelar-desvio');
+            if (btnCancelar) btnCancelar.style.display = 'block';
+
+            emitirFeedback('general');
+        }
+    };
+
+    if (userMarker) {
+        const pos = userMarker.getLngLat();
+        aplicarRutaConDesvio([pos.lng, pos.lat]);
+        return;
+    }
+
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                aplicarRutaConDesvio([pos.coords.longitude, pos.coords.latitude]);
+            },
+            err => {
+                console.error("Error al obtener GPS:", err);
+                alert("No se pudo obtener la ubicación GPS activa.");
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
+    }
+}
 
     desvioActivo = { lng, lat, nombre };
 
@@ -1003,3 +1043,24 @@ function tomarDesvioEstacion(lng, lat, nombre) {
 }
 
 window.tomarDesvioEstacion = tomarDesvioEstacion;
+function cancelarDesvio() {
+    if (!desvioActivo || !destinoActivo) return;
+
+    desvioActivo = null;
+
+    if (typeof directions !== 'undefined' && userMarker) {
+        const pos = userMarker.getLngLat();
+        directions.setOrigin([pos.lng, pos.lat]);
+        directions.setDestination([destinoActivo.lng, destinoActivo.lat]);
+    }
+
+    const subEl = document.getElementById('nav-sub-instruction');
+    if (subEl) subEl.innerText = `Ruta directa a ${destinoActivo.nombre}`;
+
+    const btnCancelar = document.getElementById('btn-cancelar-desvio');
+    if (btnCancelar) btnCancelar.style.display = 'none';
+
+    emitirFeedback('general');
+}
+
+window.cancelarDesvio = cancelarDesvio;

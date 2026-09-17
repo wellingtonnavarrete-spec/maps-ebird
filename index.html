@@ -47,14 +47,20 @@
             </div>
         </div>
         
-        <div id="nav-bottom-bar">
-            <div>
-                <div id="nav-time" style="font-size: 22px; font-weight: 800; color: #34d399; line-height: 1.2;">Calculando...</div>
-                <div id="nav-details" style="font-size: 13px; color: #9ca3af; margin-top: 2px;">Conectando con GPS</div>
-            </div>
-            <button id="nav-exit-btn" onclick="salirNavegacion()">Salir</button>
+       <div id="nav-bottom-bar">
+    <div class="hud-metrics" style="display: flex; align-items: center; gap: 15px;">
+        <div id="speedometer" class="speedometer-box">
+            <span id="speedometer-value">0</span>
+            <small>km/h</small>
+        </div>
+        <div>
+            <div id="nav-time" style="font-size: 22px; font-weight: 800; color: #34d399; line-height: 1.2;">Calculando...</div>
+            <div id="nav-details" style="font-size: 13px; color: #9ca3af; margin-top: 2px;">Conectando con GPS</div>
+            <div id="fuel-estimate" class="hud-fuel" style="font-size: 11px; color: #fde047; margin-top: 2px;">Est. Combustible: --</div>
         </div>
     </div>
+    <button id="nav-exit-btn" onclick="salirNavegacion()">Salir</button>
+</div>
     <!-- Botón Flotante para Centrar Ubicación (Oculto por defecto) -->
 <button id="btn-centrar" class="btn-floating-location" onclick="centrarUbicacion()" title="Centrar ubicación" style="display: none;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="#1e293b">
@@ -63,7 +69,16 @@
 </button>
    <!-- Mapbox GL JS -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-
+        
+<!-- Botón de Menú Circular -->
+    <button id="btn-menu-circular" class="btn-circle-menu" onclick="togglePanelLateral()" title="Menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+        
     <!-- Selector de Capas de Mapa (Esquina Inferior Izquierda) -->
     <div id="map-style-switcher" class="map-style-container">
         <button id="btn-style-streets" class="map-style-btn" onclick="cambiarEstiloMapa('streets')">
@@ -74,7 +89,7 @@
                     <line x1="16" y1="6" x2="16" y2="22"></line>
                 </svg>
             </div>
-            <span>Mapa</span>
+            <span>calles</span>
         </button>
         <button id="btn-style-satellite" class="map-style-btn active" onclick="cambiarEstiloMapa('satellite')">
             <div class="style-icon-box icon-satellite">

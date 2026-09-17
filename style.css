@@ -687,3 +687,26 @@ body {
     font-size: 11px;
     color: #fde047;
 }
+/* Estilos ajustados para Tarjeta Copec en Mapbox */
+.mapboxgl-popup-content {
+    padding: 12px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+    background: #ffffff !important;
+}
+
+.mapboxgl-popup-close-button {
+    padding: 6px 10px !important;
+    color: #64748b !important;
+    font-size: 18px !important;
+    border-radius: 50% !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+    border-top-color: #ffffff !important;
+}

@@ -277,10 +277,106 @@ let navWatchId = null;
 let navCurrentHeading = 0;
 let navMarker = null;
 
+// --- Recálculo automático de ruta ---
+let rutaActualCoords = null;      // Geometría (array de [lng, lat]) de la ruta activa
+let destinoActivo = null;         // { lng, lat, nombre } del destino en curso
+let recalculandoRuta = false;     // Evita solicitudes de recálculo superpuestas
+let ultimaRecalculacionTs = 0;    // Timestamp del último recálculo disparado
+let directionsListenerAdded = false; // Evita registrar el listener 'route' más de una vez
+const UMBRAL_DESVIO_METROS = 40;     // Distancia perpendicular a la ruta que se considera "desvío"
+const COOLDOWN_RECALCULO_MS = 8000;  // Tiempo mínimo entre recálculos consecutivos
+
 if (window.DeviceOrientationEvent) {
     window.addEventListener('deviceorientationabsolute', (event) => {
         if (event.alpha !== null) navCurrentHeading = 360 - event.alpha;
     }, true);
+}
+
+// Distancia en metros entre dos coordenadas (Haversine)
+function distanciaHaversineMetros(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Distancia perpendicular (en metros) de un punto a un segmento de ruta, usando
+// una proyección plana local (suficientemente precisa para tramos cortos de calle)
+function distanciaPuntoASegmento(lng, lat, lng1, lat1, lng2, lat2) {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const mPerDegLat = 111320;
+    const mPerDegLng = 111320 * Math.cos(toRad(lat1));
+
+    const x = (lng - lng1) * mPerDegLng;
+    const y = (lat - lat1) * mPerDegLat;
+    const dx = (lng2 - lng1) * mPerDegLng;
+    const dy = (lat2 - lat1) * mPerDegLat;
+
+    const lengthSq = dx * dx + dy * dy;
+    let t = lengthSq === 0 ? 0 : (x * dx + y * dy) / lengthSq;
+    t = Math.max(0, Math.min(1, t));
+
+    const distX = x - t * dx;
+    const distY = y - t * dy;
+    return Math.sqrt(distX * distX + distY * distY);
+}
+
+// Distancia mínima del usuario a la polilínea completa de la ruta activa
+function distanciaMinimaARuta(lng, lat, rutaCoords) {
+    if (!rutaCoords || rutaCoords.length < 2) return Infinity;
+    let minDist = Infinity;
+    for (let i = 0; i < rutaCoords.length - 1; i++) {
+        const [lng1, lat1] = rutaCoords[i];
+        const [lng2, lat2] = rutaCoords[i + 1];
+        const d = distanciaPuntoASegmento(lng, lat, lng1, lat1, lng2, lat2);
+        if (d < minDist) minDist = d;
+    }
+    return minDist;
+}
+
+// Dispara un nuevo cálculo de ruta desde la posición actual del usuario hacia el destino activo
+// Feedback breve (vibración + beep) al detectar un desvío y disparar el recálculo
+function feedbackDesvioRuta() {
+    // Vibración (solo funciona en navegadores/celulares compatibles, ej. Chrome Android)
+    if ('vibrate' in navigator) {
+        try { navigator.vibrate([120, 60, 120]); } catch (e) { /* ignorar si el navegador lo bloquea */ }
+    }
+
+    // Beep corto generado con Web Audio API (no requiere archivos de audio externos)
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+        osc.onended = () => ctx.close();
+    } catch (e) { /* Web Audio no disponible o bloqueado por el navegador */ }
+}
+
+function recalcularRuta(userLng, userLat) {
+    if (!destinoActivo || recalculandoRuta) return;
+    recalculandoRuta = true;
+    ultimaRecalculacionTs = Date.now();
+
+    feedbackDesvioRuta();
+
+    const instructionEl = document.getElementById('nav-instruction');
+    const subEl = document.getElementById('nav-sub-instruction');
+    if (instructionEl) instructionEl.innerText = 'Recalculando ruta...';
+    if (subEl) subEl.innerText = 'Te desviaste, buscando un nuevo camino';
+
+    directions.setOrigin([userLng, userLat]);
+    directions.setDestination([destinoActivo.lng, destinoActivo.lat]);
 }
 
 function iniciarRutaHacia(lng, lat, nombreDestino) {
@@ -291,6 +387,13 @@ function iniciarRutaHacia(lng, lat, nombreDestino) {
 if (document.getElementById('nav-hud')) document.getElementById('nav-hud').style.display = 'flex';
 if (document.getElementById('btn-centrar')) document.getElementById('btn-centrar').style.display = 'flex';
 if (document.getElementById('nav-instruction')) document.getElementById('nav-instruction').innerText = `Hacia ${nombreDestino}`;
+if (document.getElementById('nav-sub-instruction')) document.getElementById('nav-sub-instruction').innerText = 'Sigue el trazado de la ruta';
+
+    // Guarda el destino activo y reinicia el estado de recálculo para este nuevo viaje
+    destinoActivo = { lng, lat, nombre: nombreDestino };
+    rutaActualCoords = null;
+    recalculandoRuta = false;
+    ultimaRecalculacionTs = 0;
 
     navigator.geolocation.getCurrentPosition((pos) => {
         directions.setOrigin([pos.coords.longitude, pos.coords.latitude]);
@@ -298,23 +401,44 @@ if (document.getElementById('nav-instruction')) document.getElementById('nav-ins
     }, () => directions.setDestination([lng, lat]), { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 });
 
     if (navWatchId !== null) navigator.geolocation.clearWatch(navWatchId);
-directions.on('route', (e) => {
-        if (e.route && e.route.length > 0) {
-            const ruta = e.route[0];
-            const minutos = Math.round(ruta.duration / 60);
-            const km = (ruta.distance / 1000).toFixed(1);
 
-            const ahora = new Date();
-            ahora.setMinutes(ahora.getMinutes() + minutos);
-            const horaLlegada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // El listener 'route' se registra una sola vez: así también captura las rutas
+    // generadas por recalcularRuta() sin duplicar el manejador cada vez que se navega
+    if (!directionsListenerAdded) {
+        directionsListenerAdded = true;
+        directions.on('route', (e) => {
+            if (e.route && e.route.length > 0) {
+                const ruta = e.route[0];
+                const minutos = Math.round(ruta.duration / 60);
+                const km = (ruta.distance / 1000).toFixed(1);
 
-            const timeEl = document.getElementById('nav-time');
-            const detailsEl = document.getElementById('nav-details');
-            
-            if (timeEl) timeEl.innerText = `${minutos} min`;
-            if (detailsEl) detailsEl.innerText = `${km} km • Llegada ${horaLlegada}`;
-        }
-    });
+                const ahora = new Date();
+                ahora.setMinutes(ahora.getMinutes() + minutos);
+                const horaLlegada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const timeEl = document.getElementById('nav-time');
+                const detailsEl = document.getElementById('nav-details');
+
+                if (timeEl) timeEl.innerText = `${minutos} min`;
+                if (detailsEl) detailsEl.innerText = `${km} km • Llegada ${horaLlegada}`;
+
+                // Guarda la geometría para poder medir el desvío del usuario respecto a la ruta
+                if (ruta.geometry && Array.isArray(ruta.geometry.coordinates)) {
+                    rutaActualCoords = ruta.geometry.coordinates;
+                }
+
+                // Si esta ruta llegó producto de un recálculo, restaura el HUD a su estado normal
+                if (recalculandoRuta) {
+                    recalculandoRuta = false;
+                    const instructionEl = document.getElementById('nav-instruction');
+                    const subEl = document.getElementById('nav-sub-instruction');
+                    if (instructionEl && destinoActivo) instructionEl.innerText = `Hacia ${destinoActivo.nombre}`;
+                    if (subEl) subEl.innerText = 'Sigue el trazado de la ruta';
+                }
+            }
+        });
+    }
+
     navWatchId = navigator.geolocation.watchPosition((position) => {
         const userLng = position.coords.longitude;
         const userLat = position.coords.latitude;
@@ -325,6 +449,19 @@ directions.on('route', (e) => {
         }
 
         verificarHotspotsCercanosEnRuta(userLng, userLat);
+
+        // --- Detección de desvío y recálculo automático ---
+        if (destinoActivo && rutaActualCoords) {
+            const desviacionMetros = distanciaMinimaARuta(userLng, userLat, rutaActualCoords);
+            const ahoraTs = Date.now();
+            if (
+                desviacionMetros > UMBRAL_DESVIO_METROS &&
+                !recalculandoRuta &&
+                (ahoraTs - ultimaRecalculacionTs) > COOLDOWN_RECALCULO_MS
+            ) {
+                recalcularRuta(userLng, userLat);
+            }
+        }
 
         if (typeof map !== 'undefined') {
             map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, essential: true });
@@ -343,6 +480,13 @@ function salirNavegacion() {
     if (typeof directions !== 'undefined') directions.removeRoutes();
     if (navWatchId !== null) { navigator.geolocation.clearWatch(navWatchId); navWatchId = null; }
     if (navMarker) { navMarker.remove(); navMarker = null; }
+
+    // Limpia el estado de recálculo de ruta
+    destinoActivo = null;
+    rutaActualCoords = null;
+    recalculandoRuta = false;
+    ultimaRecalculacionTs = 0;
+
     if (typeof map !== 'undefined') map.easeTo({ pitch: 0, bearing: 0, zoom: 13, duration: 800 });
 }
 

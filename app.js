@@ -30,6 +30,29 @@ let hotspotsDataGlobal = [];
 let ultimaVerificacionRegion = 0;
 let ultimoHotspotAlertado = null;
 
+// --- NUEVAS VARIABLES AGREGADAS ---
+let autoSeguimiento = true;
+let estiloMapaActual = 'satellite';
+let rutaDestinoActual = null;
+let longPressTimer = null;
+let bencinerasMarkers = [];
+
+// --- FUNCIÓN DE FEEDBACK (VIBRACIÓN/AUDIO) ---
+function emitirFeedback(tipo = 'general') {
+    if (navigator.vibrate) navigator.vibrate(tipo === 'recalculo' ? [80, 40, 80] : [100]);
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = tipo === 'recalculo' ? 440 : 880;
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+    } catch(e) {}
+}
+
 // 2. Inicialización del Mapa
 const map = new mapboxgl.Map({
     container: 'map',
@@ -464,12 +487,25 @@ if (document.getElementById('nav-sub-instruction')) document.getElementById('nav
         }
 
         if (typeof map !== 'undefined') {
-            map.easeTo({ center: [userLng, userLat], zoom: 18.5, pitch: 65, bearing: bearingToUse, duration: 600, essential: true });
-            if (!navMarker) {
-                const el = document.createElement('div'); el.className = 'nav-marker';
-                navMarker = new mapboxgl.Marker({ element: el }).setLngLat([userLng, userLat]).addTo(map);
-            } else { navMarker.setLngLat([userLng, userLat]); }
+        if (autoSeguimiento) {
+            map.easeTo({ 
+                center: [userLng, userLat], 
+                zoom: 16.5, 
+                pitch: 40, 
+                bearing: bearingToUse, 
+                duration: 800,
+                easing: (t) => t
+            });
         }
+
+        if (!navMarker) {
+            const el = document.createElement('div');
+            el.className = 'nav-marker';
+            navMarker = new mapboxgl.Marker({ element: el }).setLngLat([userLng, userLat]).addTo(map);
+        } else {
+            navMarker.setLngLat([userLng, userLat]);
+        }
+    }
     }, (error) => { if (error.code !== 3) console.log("Error GPS:", error); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 });
 }
 
@@ -663,29 +699,6 @@ function cambiarEstiloMapa(tipo) {
         }
     });
 }
-// 3. Filtrar los puntos del mapa en tiempo real según la búsqueda de un input text
-function buscarHotspotPorNombre(textoBusqueda) {
-    if (!hotspotsDataGlobal || hotspotsDataGlobal.length === 0) return;
-
-    const textoLimpio = textoBusqueda.toLowerCase().trim();
-    
-    const filtrados = hotspotsDataGlobal.filter(h => 
-        h.locName.toLowerCase().includes(textoLimpio)
-    );
-
-    const geojsonFiltrado = {
-        type: 'FeatureCollection',
-        features: filtrados.map(h => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [h.lng, h.lat] },
-            properties: { locId: h.locId, locName: h.locName }
-        }))
-    };
-
-    if (map.getSource('ebird-hotspots')) {
-        map.getSource('ebird-hotspots').setData(geojsonFiltrado);
-    }
-}
 
 // ==========================================
 // 9. FUNCIONALIDADES DE CONTROL Y RASTREO GPS
@@ -805,4 +818,165 @@ function activarRastreoPosicion() {
 // Exportación consolidada al objeto window
 window.centrarUbicacion = centrarUbicacion;
 window.cambiarEstiloMapa = cambiarEstiloMapa;
-window.buscarHotspotPorNombre = buscarHotspotPorNombre;
+window.manejarBusquedaPredictiva = manejarBusquedaPredictiva;
+window.toggleBencinerasCercanas = toggleBencinerasCercanas;
+
+// ==========================================
+// NUEVAS FUNCIONES: BÚSQUEDA PREDICTIVA Y BENCINERAS
+// ==========================================
+
+function manejarBusquedaPredictiva(texto) {
+    const dropdown = document.getElementById('autocomplete-results');
+    const query = texto.toLowerCase().trim();
+
+    if (!query || typeof hotspotsDataGlobal === 'undefined') {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    const coincidencias = hotspotsDataGlobal.filter(h => h.locName.toLowerCase().includes(query)).slice(0, 5);
+
+    if (coincidencias.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    dropdown.innerHTML = coincidencias.map(h => `
+        <div class="autocomplete-item" onclick="seleccionarHotspotBusqueda(${h.lng}, ${h.lat}, '${h.locName.replace(/'/g, "\\'")}')">
+            ${h.locName}
+        </div>
+    `).join('');
+
+    dropdown.style.display = 'block';
+}
+
+function seleccionarHotspotBusqueda(lng, lat, nombre) {
+    document.getElementById('autocomplete-results').style.display = 'none';
+    document.getElementById('input-busqueda').value = nombre;
+    map.flyTo({ center: [lng, lat], zoom: 15 });
+}
+
+async function toggleBencinerasCercanas() {
+    if (bencinerasMarkers.length > 0) {
+        bencinerasMarkers.forEach(m => m.remove());
+        bencinerasMarkers = [];
+        return;
+    }
+
+    try {
+        const url = 'https://corsproxy.io/?https://www.bencinaenlinea.cl/CNE_Servicios/Servicios/Estaciones';
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Error de red");
+
+        const estaciones = await response.json();
+        const bounds = map.getBounds();
+
+        estaciones.forEach(estacion => {
+            const lat = parseFloat(estacion.latitud);
+            const lng = parseFloat(estacion.longitud);
+
+            if (lng >= bounds.getWest() && lng <= bounds.getEast() &&
+                lat >= bounds.getSouth() && lat <= bounds.getNorth()) {
+
+                const nombreEstacion = estacion.distribuidor || 'Estación de Servicio';
+                const direccionEstacion = estacion.direccion || 'Chile';
+
+                const popupHtml = `
+                    <div style="width: 270px; padding: 6px; font-family: -apple-system, sans-serif; color: #0f172a;">
+                        <!-- Encabezado Copec -->
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div style="width: 42px; height: 42px; background: #f1f5f9; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="#334155">
+                                    <path d="M19 10v2c0 1.66-1.34 3-3 3h-.5a2.5 2.5 0 0 0-2.5-2.5V11a2.5 2.5 0 0 0-2.5-2.5H9c-1.38 0-2.5.9-2.5 2V18h-1a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h1c.83 0 1.5.67 1.5 1.5v3h1c1.1 0 2-.9 2-2V11c0-.28.22-.5.5-.5h1c.28 0 .5.22.5.5v2c0 1.1-.9 2-2 2h-1c1.38 0 2.5 1.12 2.5 2.5h.5c.83 0 1.5-.67 1.5-1.5V10l3.18-1.59A1.5 1.5 0 0 0 22 7.07 1.5 1.5 0 0 0 20.5 5.57L17.5 7 19 10m-3-7a2 2 0 1 1-2-2 2 2 0 0 1 2 2M10 3a2 2 0 1 1-2-2 2 2 0 0 1 2 2Z"/>
+                                </svg>
+                            </div>
+                            <div style="flex-grow: 1; overflow: hidden;">
+                                <div style="font-size: 18px; font-weight: 800; color: #1e293b; line-height: 1.2;">${nombreEstacion}</div>
+                                <div style="font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">${direccionEstacion}</div>
+                            </div>
+                        </div>
+
+                        <div style="height: 1px; background: #e2e8f0; margin-bottom: 10px;"></div>
+
+                        <!-- Lista de Precios -->
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a;"></span>Gasolina 93</span>
+                                <strong>$${estacion.precios?.['93'] || 'N/A'} <span style="font-size: 10px; color: #94a3b8; font-weight: normal;">$/L</span></strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #f97316;"></span>Gasolina 95</span>
+                                <strong>$${estacion.precios?.['95'] || 'N/A'} <span style="font-size: 10px; color: #94a3b8; font-weight: normal;">$/L</span></strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #dc2626;"></span>Gasolina 97</span>
+                                <strong>$${estacion.precios?.['97'] || 'N/A'} <span style="font-size: 10px; color: #94a3b8; font-weight: normal;">$/L</span></strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #475569;"></span>Petróleo Diésel</span>
+                                <strong>$${estacion.precios?.['diesel'] || 'N/A'} <span style="font-size: 10px; color: #94a3b8; font-weight: normal;">$/L</span></strong>
+                            </div>
+                        </div>
+
+                        <div style="height: 1px; background: #e2e8f0; margin-bottom: 12px;"></div>
+
+                        <!-- Botón Tomar Desvío -->
+                        <button onclick="tomarDesvioEstacion(${lng}, ${lat}, '${nombreEstacion.replace(/'/g, "\\'")}')" 
+                                style="width: 100%; background: #0f172a; color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M12 2l7 10M12 2L5 12"/></svg>
+                            Tomar Desvío (${nombreEstacion})
+                        </button>
+                    </div>
+                `;
+
+                const el = document.createElement('div');
+                el.className = 'gas-station-marker';
+                el.innerHTML = `
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="#0284c7" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 22V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v18"/>
+                        <path d="M14 13h4a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/>
+                    </svg>
+                `;
+
+                const marker = new mapboxgl.Marker(el)
+                    .setLngLat([lng, lat])
+                    .setPopup(new mapboxgl.Popup({ offset: 15, maxWidth: '300px' }).setHTML(popupHtml))
+                    .addTo(map);
+
+                bencinerasMarkers.push(marker);
+            }
+        });
+        emitirFeedback('general');
+    } catch (e) {
+        console.error("Error al obtener Bencina en Línea:", e);
+    }
+}
+let desvioActivo = null;
+
+function tomarDesvioEstacion(lng, lat, nombre) {
+    if (!destinoActivo) {
+        iniciarRutaHacia(lng, lat, nombre);
+        return;
+    }
+
+    desvioActivo = { lng, lat, nombre };
+
+    if (typeof directions !== 'undefined') {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const origen = [pos.coords.longitude, pos.coords.latitude];
+            const desvio = [lng, lat];
+            const destino = [destinoActivo.lng, destinoActivo.lat];
+
+            directions.setOrigin(origen);
+            directions.addWaypoint(0, desvio);
+            directions.setDestination(destino);
+
+            const subEl = document.getElementById('nav-sub-instruction');
+            if (subEl) subEl.innerText = `Desvío programado: Parada en ${nombre}`;
+            
+            emitirFeedback('general');
+        });
+    }
+}
+
+window.tomarDesvioEstacion = tomarDesvioEstacion;

@@ -953,6 +953,8 @@ async function toggleBencinerasCercanas() {
 }
 let desvioActivo = null;
 
+let desvioActivo = null;
+
 function tomarDesvioEstacion(lng, lat, nombre) {
     if (!destinoActivo) {
         iniciarRutaHacia(lng, lat, nombre);
@@ -961,21 +963,42 @@ function tomarDesvioEstacion(lng, lat, nombre) {
 
     desvioActivo = { lng, lat, nombre };
 
-    if (typeof directions !== 'undefined') {
-        navigator.geolocation.getCurrentPosition(pos => {
-            const origen = [pos.coords.longitude, pos.coords.latitude];
+    const aplicarRutaConDesvio = (origenLngLat) => {
+        if (typeof directions !== 'undefined') {
             const desvio = [lng, lat];
             const destino = [destinoActivo.lng, destinoActivo.lat];
 
-            directions.setOrigin(origen);
-            directions.addWaypoint(0, desvio);
+            // Establecer origen y destino, luego inyectar la parada intermedia
+            directions.setOrigin(origenLngLat);
             directions.setDestination(destino);
+            directions.addWaypoint(0, desvio);
 
             const subEl = document.getElementById('nav-sub-instruction');
             if (subEl) subEl.innerText = `Desvío programado: Parada en ${nombre}`;
             
             emitirFeedback('general');
-        });
+        }
+    };
+
+    // 1. Usar inmediatamente la posición activa del marcador en el mapa
+    if (userMarker) {
+        const pos = userMarker.getLngLat();
+        aplicarRutaConDesvio([pos.lng, pos.lat]);
+        return;
+    }
+
+    // 2. Fallback si el marcador aún no se ha dibujado
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                aplicarRutaConDesvio([pos.coords.longitude, pos.coords.latitude]);
+            },
+            err => {
+                console.error("Error al obtener ubicación GPS:", err);
+                alert("No se pudo obtener tu ubicación actual. Asegúrate de tener el GPS activo.");
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
     }
 }
 

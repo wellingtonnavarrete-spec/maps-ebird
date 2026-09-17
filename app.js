@@ -653,7 +653,7 @@ function centrarUbicacion() {
 }
 
 // 2. Alternar entre estilos de mapa ('streets' vs 'satellite')
-let estiloMapaActual = 'satellite';
+estiloMapaActual = 'satellite';
 
 function cambiarEstiloMapa(tipo) {
     if (tipo === estiloMapaActual || !map) return;

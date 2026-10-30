@@ -1,109 +1,116 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-CL">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Navegador eBird</title>
-    <!-- Mapbox GL JS CSS -->
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-
-    <!-- Mapbox Directions Plugin CSS y JS -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.1/mapbox-gl-directions.js"></script>
-    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.1/mapbox-gl-directions.css" type="text/css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Mapa interactivo de aves de Chile con hotspots de eBird, navegación y avisos de aves raras.">
+  <title>Mapa de Aves</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
-    <div id="map"></div>
-<!-- Barra de búsqueda y centrado de ubicación -->
-<div class="top-controls" style="position: absolute; top: 15px; left: 15px; z-index: 10; display: flex; gap: 8px;">
-    <input type="text" placeholder="🔍 Buscar hotspot..." oninput="buscarHotspotPorNombre(this.value)" style="padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; outline: none; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-    <button onclick="centrarUbicacion()" style="padding: 8px 14px; border-radius: 20px; border: none; background: #ffffff; cursor: pointer; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">🎯 Mi Ubicación</button>
-</div>
-    <!-- NUEVO: Botón de Radar de Actividad -->
-    <button id="btn-radar" onclick="buscarHotspotsActivos()">
-        🔥 Ver activos (Últimos 7 días)
-    </button>
+  <div id="map"></div>
 
-    <!-- NUEVO: Panel lateral oculto -->
-    <div id="side-panel" class="panel-hidden">
-        <button id="close-panel" onclick="cerrarPanel()">×</button>
-        <h2>Observaciones Recientes</h2>
-        <div id="panel-content">
-            <p>Selecciona un punto en el mapa...</p>
-        </div>
+  <!-- Barra superior: buscador + menú -->
+  <div class="barra-superior">
+    <div class="buscador">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="buscar" type="search" placeholder="Buscar hotspot…" autocomplete="off" aria-label="Buscar hotspot" aria-controls="resultados">
+      <div id="resultados" class="resultados" role="listbox" hidden></div>
     </div>
-<!-- HUD de Navegación en Ruta Limpio -->
-    <div id="nav-hud" style="display: none;">
-        <div id="nav-top-banner">
-            <div class="nav-arrow-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="19" x2="12" y2="5"></line>
-                    <polyline points="5 12 12 5 19 12"></polyline>
-                </svg>
-            </div>
-            <div>
-                <div id="nav-instruction" style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px;">En ruta</div>
-                <div id="nav-sub-instruction" style="font-size: 13px; opacity: 0.85;">Sigue el trazado de la ruta</div>
-            </div>
-        </div>
-        
-       <div id="nav-bottom-bar">
-    <div class="hud-metrics" style="display: flex; align-items: center; gap: 15px;">
-        <div id="speedometer" class="speedometer-box">
-            <span id="speedometer-value">0</span>
-            <small>km/h</small>
-        </div>
+    <button class="btn-circular" data-accion="menu" title="Ajustes" aria-label="Abrir ajustes">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </div>
+
+  <!-- Acciones inferiores -->
+  <div class="acciones-inferiores">
+    <div class="region-chip" title="Región de los datos"><span id="region-actual">La Araucanía</span></div>
+    <div class="pildoras">
+      <button class="pildora pildora-roja" data-accion="activos">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 1.5S11 5 11 7.5c0 1.4.6 2.6 1.5 3.5-1-.7-2-1.8-2-3.5 0 0-3.5 3.5-3.5 7.5a7 7 0 0 0 14 0c0-5.5-4.5-9.5-7.5-13.5z"/></svg>
+        Activos 7 días
+      </button>
+      <button class="pildora pildora-ambar" data-accion="raras">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 3 6.5 7 .8-5.2 4.8 1.4 7-6.2-3.6-6.2 3.6 1.4-7L2 9.3l7-.8z"/></svg>
+        Aves raras
+      </button>
+    </div>
+  </div>
+
+  <!-- Selector de capas -->
+  <div class="map-style-container" role="group" aria-label="Tipo de mapa">
+    <button class="map-style-btn" data-accion="estilo" data-estilo="calles">
+      <span class="style-icon-box icon-streets"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z"/><path d="M8 2v16M16 6v16"/></svg></span>
+      <span>Calles</span>
+    </button>
+    <button class="map-style-btn" data-accion="estilo" data-estilo="satelite">
+      <span class="style-icon-box icon-satellite"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></span>
+      <span>Satélite</span>
+    </button>
+    <button class="map-style-btn" data-accion="estilo" data-estilo="relieve">
+      <span class="style-icon-box icon-relief"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m2 20 7-12 4 6 3-4 6 10z"/></svg></span>
+      <span>Relieve</span>
+    </button>
+  </div>
+
+  <!-- Botón para volver a centrar (aparece al mover el mapa) -->
+  <button id="btn-centrar" class="btn-ubicacion" data-accion="centrar" title="Centrar en mi ubicación" aria-label="Centrar en mi ubicación">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A9 9 0 0 0 13 3.06V1h-2v2.06A9 9 0 0 0 3.06 11H1v2h2.06A9 9 0 0 0 11 20.94V23h2v-2.06A9 9 0 0 0 20.94 13H23v-2zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg>
+  </button>
+
+  <!-- Panel lateral -->
+  <aside id="side-panel" aria-hidden="true">
+    <div class="panel-cabecera">
+      <h2 id="panel-titulo">Observaciones</h2>
+      <button class="btn-icono" data-accion="cerrar-panel" aria-label="Cerrar panel">×</button>
+    </div>
+    <div id="panel-content"></div>
+  </aside>
+
+  <!-- HUD de navegación -->
+  <div id="nav-hud">
+    <div id="nav-top-banner">
+      <div class="nav-arrow-icon">
+        <svg id="nav-flecha" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </div>
+      <div class="nav-textos">
+        <div id="nav-instruccion">En ruta</div>
+        <div id="nav-sub">Sigue el trazado de la ruta</div>
+      </div>
+    </div>
+    <div id="nav-bottom-bar">
+      <div class="hud-metrics">
+        <div class="speedometer-box"><span id="speedometer-value">0</span><small>km/h</small></div>
         <div>
-            <div id="nav-time" style="font-size: 22px; font-weight: 800; color: #34d399; line-height: 1.2;">Calculando...</div>
-            <div id="nav-details" style="font-size: 13px; color: #9ca3af; margin-top: 2px;">Conectando con GPS</div>
-            <div id="fuel-estimate" class="hud-fuel" style="font-size: 11px; color: #fde047; margin-top: 2px;">Est. Combustible: --</div>
+          <div id="nav-tiempo">Calculando…</div>
+          <div id="nav-detalle">Conectando con GPS</div>
+          <div id="nav-combustible"></div>
         </div>
+      </div>
+      <div class="hud-botones">
+        <button id="btn-quitar-parada" class="btn-hud" data-accion="quitar-parada" hidden>Quitar parada</button>
+        <button id="nav-exit-btn" data-accion="salir">Salir</button>
+      </div>
     </div>
-    <button id="nav-exit-btn" onclick="salirNavegacion()">Salir</button>
-</div>
-    <!-- Botón Flotante para Centrar Ubicación (Oculto por defecto) -->
-<button id="btn-centrar" class="btn-floating-location" onclick="centrarUbicacion()" title="Centrar ubicación" style="display: none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="#1e293b">
-        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
-    </svg>
-</button>
-   <!-- Mapbox GL JS -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-        
-<!-- Botón de Menú Circular -->
-    <button id="btn-menu-circular" class="btn-circle-menu" onclick="togglePanelLateral()" title="Menú">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round">
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-    </button>
-        
-    <!-- Selector de Capas de Mapa (Esquina Inferior Izquierda) -->
-    <div id="map-style-switcher" class="map-style-container">
-        <button id="btn-style-streets" class="map-style-btn" onclick="cambiarEstiloMapa('streets')">
-            <div class="style-icon-box icon-streets">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                    <line x1="8" y1="2" x2="8" y2="18"></line>
-                    <line x1="16" y1="6" x2="16" y2="22"></line>
-                </svg>
-            </div>
-            <span>calles</span>
-        </button>
-        <button id="btn-style-satellite" class="map-style-btn active" onclick="cambiarEstiloMapa('satellite')">
-            <div class="style-icon-box icon-satellite">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M12 2a14.5 14.5 0 0 0 0 29 14.5 14.5 0 0 0 0-29z"></path>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                </svg>
-            </div>
-            <span>Satélite</span>
-        </button>
-    </div>
+  </div>
 
-    <!-- Tu código principal -->
-    <script src="app.js?v=2"></script>
+  <!-- Alerta de hotspot cercano en ruta -->
+  <div id="desvio-card" class="desvio-card-hud" role="status" aria-live="polite"></div>
+
+  <!-- Avisos -->
+  <div id="toasts" aria-live="polite"></div>
+
+  <!-- Scripts: primero Mapbox GL, luego configuración, luego la app -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <script src="config.js?v=3"></script>
+  <script>
+    // config.local.js (con tu key de pruebas) solo se carga en tu computador
+    if (['localhost', '127.0.0.1'].includes(location.hostname)) document.write('<script src="config.local.js"><\/script>');
+  </script>
+  <script type="module" src="app.js?v=3"></script>
 </body>
 </html>

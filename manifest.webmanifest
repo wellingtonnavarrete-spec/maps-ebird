@@ -1,0 +1,13 @@
+{
+  "name": "Mapa de Aves",
+  "short_name": "Aves",
+  "description": "Mapa interactivo de aves de Chile con hotspots de eBird",
+  "lang": "es-CL",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

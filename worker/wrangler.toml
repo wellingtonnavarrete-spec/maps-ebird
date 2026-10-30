@@ -1,0 +1,12 @@
+name = "maps-ebird-proxy"
+main = "ebird-proxy.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Dominios que pueden usar el proxy (separados por coma). Vacío = cualquiera (no recomendado).
+ALLOWED_ORIGINS = "https://wellingtonnavarrete-spec.github.io,http://localhost:8000,http://127.0.0.1:8000"
+
+# Secrets (NO van en este archivo). Se cargan con:
+#   npx wrangler secret put EBIRD_API_KEY
+#   npx wrangler secret put CNE_EMAIL        (opcional, para bencineras)
+#   npx wrangler secret put CNE_PASSWORD     (opcional, para bencineras)

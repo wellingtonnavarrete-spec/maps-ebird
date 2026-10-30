@@ -1,712 +1,274 @@
-body {
-    margin: 0;
-    padding: 0;
+:root {
+  --tinta: #0f172a;
+  --tinta-2: #334155;
+  --gris: #64748b;
+  --linea: #e2e8f0;
+  --fondo: #ffffff;
+  --azul: #0284c7;
+  --verde: #10b981;
+  --rojo: #ef4444;
+  --ambar: #f59e0b;
+  --wa: #25d366;
+  --sombra: 0 6px 20px rgba(15, 23, 42, 0.18);
+  --radio: 14px;
+  --seguro-abajo: env(safe-area-inset-bottom, 0px);
+  --seguro-arriba: env(safe-area-inset-top, 0px);
 }
 
-#map {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 100%;
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: var(--tinta); background: #0f172a; }
+button { font: inherit; cursor: pointer; }
+#map { position: absolute; inset: 0; }
+
+/* ---------- Botones genéricos ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: none; border-radius: 10px; padding: 10px 14px; font-weight: 600; font-size: 14px;
+  text-decoration: none; transition: filter .15s, transform .1s;
 }
-/* Estilos del Panel Lateral */
-#side-panel {
-    position: absolute;
-    top: 0;
-    right: -350px; /* Oculto fuera de la pantalla por defecto */
-    width: 320px;
-    height: 100%;
-    background: white;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.2);
-    transition: right 0.3s ease-in-out;
-    z-index: 1000;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto;
-    font-family: Arial, sans-serif;
+.btn:active { transform: scale(.97); }
+.btn:hover { filter: brightness(.95); }
+.btn-primario { background: var(--azul); color: #fff; }
+.btn-verde { background: var(--verde); color: #fff; }
+.btn-sec { background: #f1f5f9; color: var(--tinta); }
+.btn-wa { background: var(--wa); color: #fff; }
+.btn-link { background: transparent; color: var(--azul); padding: 8px; }
+.btn-mini { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--tinta-2); }
+.btn-icono {
+  width: 36px; height: 36px; flex-shrink: 0; border: none; border-radius: 50%;
+  background: #f1f5f9; color: var(--tinta-2); font-size: 22px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.btn-icono.wa { background: #dcfce7; color: #15803d; }
+
+/* ---------- Barra superior ---------- */
+.barra-superior {
+  position: absolute; top: calc(12px + var(--seguro-arriba)); left: 12px; right: 12px; z-index: 15;
+  display: flex; gap: 10px; align-items: flex-start; pointer-events: none;
+}
+.barra-superior > * { pointer-events: auto; }
+.buscador {
+  position: relative; flex: 1; max-width: 420px;
+  display: flex; align-items: center; gap: 8px; padding: 0 14px;
+  background: rgba(255, 255, 255, .97); border-radius: 24px; box-shadow: var(--sombra); color: var(--gris);
+}
+.buscador input { flex: 1; border: none; outline: none; background: transparent; padding: 12px 0; font-size: 16px; color: var(--tinta); min-width: 0; }
+.resultados {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff; border-radius: var(--radio);
+  box-shadow: var(--sombra); max-height: 50vh; overflow-y: auto;
+}
+.resultado { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; flex-direction: column; }
+.resultado strong { font-size: 14px; color: var(--tinta); }
+.resultado small { font-size: 12px; color: var(--gris); }
+.resultado.sel, .resultado:hover { background: #f0f9ff; }
+.resultado.vacio { cursor: default; color: var(--gris); font-size: 13px; }
+.btn-circular {
+  width: 46px; height: 46px; border-radius: 50%; border: none; flex-shrink: 0; margin-left: auto;
+  background: rgba(255, 255, 255, .97); color: var(--tinta); box-shadow: var(--sombra);
+  display: flex; align-items: center; justify-content: center;
 }
 
-#side-panel.panel-open {
-    right: 0; /* Desliza hacia adentro */
+/* ---------- Acciones inferiores ---------- */
+.acciones-inferiores {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(96px + var(--seguro-abajo)); z-index: 10;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
 }
+.acciones-inferiores > * { pointer-events: auto; }
+.region-chip { background: rgba(15, 23, 42, .78); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+.pildoras { display: flex; gap: 8px; }
+.pildora {
+  display: flex; align-items: center; gap: 6px; border: none; border-radius: 30px; padding: 11px 18px;
+  font-weight: 700; font-size: 14px; background: #fff; box-shadow: var(--sombra); white-space: nowrap;
+}
+.pildora-roja { color: #b91c1c; }
+.pildora-ambar { color: #b45309; }
+.pildora-roja.activo { background: var(--rojo); color: #fff; }
+.pildora-ambar.activo { background: var(--ambar); color: #fff; }
+.pildora.cargando, .btn.cargando { opacity: .6; }
 
-#close-panel {
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    float: right;
-    color: #777;
-}
-
-/* Estilos de la lista de aves */
-.bird-item {
-    border-bottom: 1px solid #eee;
-    padding: 10px 0;
-}
-.bird-name {
-    font-weight: bold;
-    color: #333;
-    font-size: 14px;
-}
-.bird-date {
-    font-size: 12px;
-    color: #777;
-    margin-top: 4px;
-}
-#btn-radar {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
-    border: none;
-    padding: 14px 28px;
-    border-radius: 40px;
-    font-weight: 600;
-    font-size: 14px;
-    letter-spacing: 0.3px;
-    cursor: pointer;
-    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
-    transition: all 0.25s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-#btn-radar:hover {
-    transform: translateX(-50%) translateY(-2px);
-    box-shadow: 0 14px 30px rgba(239, 68, 68, 0.5);
-    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
-}
-/* --- Estilo moderno para los Popups de Mapbox --- */
-.mapboxgl-popup-content {
-    padding: 0 !important;
-    border-radius: 12px !important;
-    overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-.mapboxgl-popup-close-button {
-    font-size: 18px;
-    padding: 6px 10px;
-    color: #fff;
-    background: rgba(0,0,0,0.3);
-    border: none;
-    border-bottom-left-radius: 8px;
-}
-
-.mapboxgl-popup-close-button:hover {
-    background: rgba(0,0,0,0.6);
-}
-
-/* Contenido interno personalizado */
-.popup-card {
-    width: 240px;
-}
-
-.popup-img {
-    width: 100%;
-    height: 110px;
-    object-fit: cover;
-    display: block;
-}
-
-.popup-body {
-    padding: 12px;
-    background: #ffffff;
-}
-
-.popup-body h3 {
-    margin: 0 0 4px 0;
-    font-size: 15px;
-    color: #1e293b;
-    font-weight: 700;
-}
-
-.popup-body p {
-    margin: 0 0 12px 0;
-    font-size: 12px;
-    color: #64748b;
-}
-
-.popup-btn {
-    width: 100%;
-    background-color: #0284c7;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.popup-btn:hover {
-    background-color: #0369a1;
-}
-/* --- Popup estilo Google Maps Limpio --- */
-.mapboxgl-popup-content {
-    padding: 0 !important;
-    border-radius: 16px !important;
-    overflow: hidden;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.25) !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    width: 280px;
-}
-
-.mapboxgl-popup-close-button {
-    font-size: 16px;
-    padding: 6px 10px;
-    color: #fff;
-    background: rgba(0, 0, 0, 0.6);
-    border: none;
-    border-bottom-left-radius: 12px;
-    z-index: 10;
-}
-
-.mapboxgl-popup-close-button:hover {
-    background: rgba(0, 0, 0, 0.8);
-}
-
-.popup-img-clean {
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
-    display: block;
-    background-color: #cbd5e1;
-}
-
-.popup-body-clean {
-    padding: 16px;
-    background: #ffffff;
-}
-
-.popup-body-clean h3 {
-    margin: 0 0 12px 0;
-    font-size: 16px;
-    color: #0f172a;
-    font-weight: 700;
-    line-height: 1.3;
-}
-
-.popup-btn-clean {
-    width: 100%;
-    background-color: #0284c7;
-    color: white;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.popup-btn-clean:hover {
-    background-color: #0369a1;
-}
-/* --- Botón de navegación "Ir" en el Popup --- */
-.popup-btn-ir {
-    width: 100%;
-    background-color: #10b981;
-    color: white;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.popup-btn-ir:hover {
-    background-color: #059669;
-}
-/* --- HUD de Navegación Profesional Limpio --- */
-.mapbox-directions-instructions,
-.mapbox-directions-instructions-wrapper,
-.mapbox-directions-profile-picker {
-    display: none !important;
-}
-
-/* Contenedor principal del HUD (Transparente para ver el mapa) */
-#nav-hud {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: transparent !important;
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 15px;
-    box-sizing: border-box;
-    z-index: 30;
-}
-
-/* Banner superior con la instrucción */
-#nav-top-banner {
-    background: #0f172a;
-    color: #ffffff;
-    padding: 14px 18px;
-    border-radius: 14px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    pointer-events: auto;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* Barra inferior con tiempos y botón Salir */
-#nav-bottom-bar {
-    background: #0f172a;
-    color: #ffffff;
-    padding: 14px 18px;
-    border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    pointer-events: auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-#nav-exit-btn {
-    background: #ef4444;
-    color: #ffffff;
-    border: none;
-    padding: 12px 22px;
-    border-radius: 14px;
-    font-weight: 700;
-    font-size: 15px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-#nav-top-banner {
-    background: #064e3b;
-    color: #ffffff;
-    padding: 16px 20px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    pointer-events: auto;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 18px; /* Texto más grande */
-}
-
-#nav-bottom-bar {
-    background: #111827;
-    color: #ffffff;
-    padding: 20px 24px;
-    border-radius: 22px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 -10px 35px rgba(0,0,0,0.5);
-    pointer-events: auto;
-}
-
-#nav-time {
-    font-size: 26px !important; /* Minutos más grandes estilo Waze */
-    font-weight: 800;
-    color: #34d399;
-}
-
-#nav-details {
-    font-size: 15px !important; /* Kilómetros y hora más legibles */
-    color: #9ca3af;
-    margin-top: 4px;
-}
-#nav-exit-btn:hover {
-    background: #dc2626;
-}
-/* Ocultar ABSOLUTAMENTE TODO el panel por defecto de Mapbox Directions */
-.mapboxgl-ctrl-directions,
-.mapbox-directions-component,
-.mapbox-directions-instructions,
-.mapbox-directions-profile-picker,
-.mapbox-directions-route-summary {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-}
-
-/* Asegurar que el botón Salir se pueda tocar */
-#nav-exit-btn {
-    pointer-events: auto !important;
-    z-index: 9999;
-}
-/* --- Ícono de Navegación Estilo Apple Maps --- */
-.nav-marker {
-    width: 38px;
-    height: 38px;
-    background-color: #007AFF; /* Azul vibrante */
-    border: 4px solid white;
-    border-radius: 50%;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-/* Construimos el triángulo (flecha) apuntando hacia arriba */
-.nav-marker::after {
-    content: '';
-    width: 0;
-    height: 0;
-    border-left: 7px solid transparent;
-    border-right: 7px solid transparent;
-    border-bottom: 16px solid white;
-    transform: translateY(-2px); /* Centra la flecha un poquito más arriba */
-}
-/* Ocultar los marcadores 'A' (Origen) y 'B' (Destino) que pone Mapbox por defecto */
-.mapbox-directions-origin,
-.mapbox-directions-destination {
-    display: none !important;
-}
-/* Escalar el panel verde de direcciones de Mapbox */
-.mapboxgl-ctrl-directions {
-    transform: scale(1.3);
-    transform-origin: top left;
-    margin: 15px !important;
-}
-
-/* Agrandar tarjeta de desvío (HUD) */
-.desvio-card-hud {
-    font-size: 1.5rem !important;
-    padding: 20px !important;
-    border-radius: 15px;
-}
-
-/* Agrandar el botón de desvío */
-.desvio-card-hud button {
-    font-size: 1.2rem;
-    padding: 15px 20px;
-    margin-top: 10px;
-    width: 100%;
-}
-/* Toolbar Flotante superior */
-.top-controls {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    z-index: 10;
-    display: flex;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 8px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-/* Panel Lateral deslizante */
-#side-panel {
-    position: fixed;
-    top: 0; right: -360px;
-    width: 320px; height: 100vh;
-    background: #fff;
-    box-shadow: -4px 0 15px rgba(0,0,0,0.2);
-    transition: right 0.3s ease;
-    z-index: 20;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-#side-panel.panel-open { right: 0; }
-
-/* HUD de Navegación en Ruta */
-#nav-hud {
-    position: fixed;
-    bottom: 20px; left: 50%;
-    transform: translateX(-50%);
-    width: 90%; max-width: 420px;
-    background: #1e293b; color: #fff;
-    border-radius: 16px; padding: 16px;
-    display: flex; flex-direction: column; gap: 12px;
-    z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-}
-
-.hud-metrics { display: flex; justify-content: space-between; align-items: center; }
-.speedometer { font-size: 28px; font-weight: bold; color: #38bdf8; }
-
-/* Tarjetas de Desvío (Popups dinámicos) */
-.desvio-card-hud {
-    position: fixed; top: 80px; left: 50%;
-    transform: translateX(-50%) translateY(-20px);
-    background: #0f172a; color: #fff;
-    padding: 12px 18px; border-radius: 30px;
-    display: flex; align-items: center; gap: 12px;
-    opacity: 0; transition: all 0.4s ease; z-index: 25;
-}
-
-.desvio-card-hud.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* Indicador de posición GPS en vivo */
-.nav-marker {
-    width: 22px; height: 22px;
-    background-color: #007cbf;
-    border: 3px solid #fff; border-radius: 50%;
-    box-shadow: 0 0 10px rgba(0,124,191,0.8);
-}
-/* Botón Flotante de Centrado GPS */
-.btn-floating-location {
-    position: fixed;
-    bottom: 110px;
-    right: 20px;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    z-index: 35;
-    display: none; /* Inicialmente oculto */
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.15s ease, background-color 0.15s ease;
-}
-
-.btn-floating-location:active {
-    transform: scale(0.92);
-    background-color: #f1f5f9;
-}
-/* Selector de Capas Estilo Google Maps */
+/* ---------- Selector de capas ---------- */
 .map-style-container {
-    position: fixed;
-    bottom: 25px;
-    left: 20px;
-    display: flex;
-    gap: 8px;
-    z-index: 30;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    padding: 6px;
-    border-radius: 14px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+  position: absolute; bottom: calc(16px + var(--seguro-abajo)); left: 12px; z-index: 10;
+  display: flex; gap: 4px; padding: 5px; background: rgba(255, 255, 255, .97);
+  border-radius: var(--radio); box-shadow: var(--sombra);
 }
-
 .map-style-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: transparent;
-    border: 2px solid transparent;
-    border-radius: 10px;
-    padding: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: transparent; border: 2px solid transparent; border-radius: 10px; padding: 3px;
 }
+.map-style-btn span:last-child { font-size: 11px; font-weight: 700; color: var(--gris); }
+.style-icon-box { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.icon-streets { background: #e0f2fe; color: var(--azul); }
+.icon-satellite { background: var(--tinta); color: #38bdf8; }
+.icon-relief { background: #dcfce7; color: #15803d; }
+.map-style-btn.active { border-color: var(--azul); background: #f0f9ff; }
+.map-style-btn.active span:last-child { color: var(--azul); }
 
-.map-style-btn span {
-    font-size: 11px;
-    font-weight: 700;
-    color: #64748b;
-    margin-top: 4px;
-}
+/* Controles de Mapbox: dejar espacio a la derecha abajo */
+.mapboxgl-ctrl-bottom-right { bottom: calc(var(--seguro-abajo)); }
 
-.style-icon-box {
-    width: 42px;
-    height: 42px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* ---------- Botón centrar ---------- */
+.btn-ubicacion {
+  position: absolute; right: 12px; bottom: calc(150px + var(--seguro-abajo)); z-index: 12;
+  width: 48px; height: 48px; border-radius: 50%; border: none; background: #fff; color: var(--tinta);
+  box-shadow: var(--sombra); display: flex; align-items: center; justify-content: center;
 }
+.btn-ubicacion:active { transform: scale(.92); }
 
-.icon-streets {
-    background: #e0f2fe;
-    color: #0284c7;
+/* ---------- Panel lateral ---------- */
+#side-panel {
+  position: fixed; top: 0; right: 0; width: 380px; max-width: 100%; height: 100%; z-index: 40;
+  background: var(--fondo); box-shadow: -6px 0 24px rgba(0, 0, 0, .2);
+  transform: translateX(105%); transition: transform .28s ease;
+  display: flex; flex-direction: column; padding-top: var(--seguro-arriba);
 }
+#side-panel.panel-open { transform: translateX(0); }
+.panel-cabecera { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--linea); }
+.panel-cabecera h2 { flex: 1; margin: 0; font-size: 18px; line-height: 1.25; }
+#panel-content { flex: 1; overflow-y: auto; padding: 12px 16px calc(24px + var(--seguro-abajo)); -webkit-overflow-scrolling: touch; }
+.panel-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.cargando, .vacio { text-align: center; color: var(--gris); padding: 24px 0; }
+.nota { font-size: 12px; color: var(--gris); margin: 8px 0; }
+.observadores { font-size: 13px; color: var(--tinta-2); margin: 8px 0; }
+.resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 8px; }
+.resumen div { background: #f8fafc; border-radius: 10px; padding: 8px; text-align: center; }
+.resumen strong { display: block; font-size: 20px; }
+.resumen span { font-size: 11px; color: var(--gris); }
 
-.icon-satellite {
-    background: #0f172a;
-    color: #38bdf8;
-}
+.ave { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+.ave img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--linea); }
+.ave-info { flex: 1; min-width: 0; }
+.ave-nombre { font-weight: 700; font-size: 15px; }
+.ave-sci { font-size: 12px; color: var(--gris); font-style: italic; }
+.ave-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.frec { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.frec-barra { flex: 1; max-width: 120px; height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; }
+.frec-barra span { display: block; height: 100%; background: var(--verde); }
+.frec small { font-size: 11px; color: var(--tinta-2); }
+.fila-botones { display: flex; gap: 6px; margin-top: 6px; }
+.tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; vertical-align: 2px; font-style: normal; }
+.tag-ok { background: #dcfce7; color: #15803d; }
+.tag-pend { background: #fef3c7; color: #92400e; }
 
-.map-style-btn.active {
-    border-color: #0284c7;
-    background: #f0f9ff;
-}
+/* Ajustes */
+.campo { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; margin: 12px 0; }
+.campo select, .campo input { font: inherit; font-weight: 400; padding: 10px; border: 1px solid var(--linea); border-radius: 10px; font-size: 16px; }
+.interruptor { display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+.interruptor input { width: 20px; height: 20px; accent-color: var(--azul); }
+.leyenda { list-style: none; padding: 0; margin: 0; font-size: 13px; }
+.leyenda li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.leyenda i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--linea); }
+.leyenda i.anillo { background: rgba(239, 68, 68, .25); border: 3px solid var(--rojo); box-shadow: none; }
+h4 { margin: 18px 0 6px; font-size: 14px; }
 
-.map-style-btn.active span {
-    color: #0284c7;
-}
+/* ---------- Popups ---------- */
+.mapboxgl-popup-content { padding: 0; border-radius: var(--radio); overflow: hidden; box-shadow: var(--sombra); font-family: inherit; }
+.mapboxgl-popup-close-button { font-size: 20px; width: 30px; height: 30px; color: #fff; background: rgba(15, 23, 42, .55); border-radius: 0 0 0 10px; z-index: 2; }
+.popup-card { width: 280px; max-width: 80vw; }
+.popup-img { width: 100%; height: 130px; object-fit: cover; display: block; background: #cbd5e1; }
+.popup-body { padding: 14px; }
+.popup-body h3 { margin: 0 0 4px; font-size: 16px; line-height: 1.3; padding-right: 22px; }
+.popup-meta { margin: 0 0 10px; font-size: 12px; color: var(--gris); }
+.popup-acciones { display: flex; flex-direction: column; gap: 6px; }
+.precios { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; font-size: 13px; }
+.precio { display: flex; justify-content: space-between; }
+.precio span { display: flex; align-items: center; gap: 8px; }
+.precio i { width: 10px; height: 10px; border-radius: 50%; }
 
-.map-style-btn:active {
-    transform: scale(0.94);
+/* ---------- Marcador de ubicación ---------- */
+.user-location-marker { width: 30px; height: 30px; position: relative; display: flex; align-items: center; justify-content: center; }
+.user-dot { width: 15px; height: 15px; background: #1a73e8; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); position: absolute; z-index: 2; }
+.user-dot-pulse { width: 30px; height: 30px; background: rgba(26, 115, 232, .35); border-radius: 50%; position: absolute; animation: pulso 2s infinite ease-in-out; }
+.user-arrow { display: none; }
+.user-location-marker.navegando { width: 40px; height: 40px; }
+.user-location-marker.navegando .user-dot, .user-location-marker.navegando .user-dot-pulse { display: none; }
+.user-location-marker.navegando .user-arrow {
+  display: block; width: 40px; height: 40px; border-radius: 50%; background: #1a73e8; border: 4px solid #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .4); position: relative;
 }
-/* Quita el fondo transparente del contenedor superior de navegación */
-.mapboxgl-ctrl-top-center,
-.mapboxgl-ctrl-top-left,
-.mapbox-directions-instructions,
-.directions-control-instructions,
+.user-location-marker.navegando .user-arrow::after {
+  content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -60%);
+  border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 15px solid #fff;
+}
+@keyframes pulso { 0%, 100% { transform: scale(.6); opacity: .8; } 50% { transform: scale(1.3); opacity: .2; } }
+
+/* ---------- HUD de navegación ---------- */
 #nav-hud {
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 auto !important;
-    max-width: 100% !important;
+  display: none; position: fixed; inset: 0; z-index: 30; pointer-events: none;
+  flex-direction: column; justify-content: space-between;
+  padding: calc(12px + var(--seguro-arriba)) 12px calc(12px + var(--seguro-abajo));
 }
+body.modo-nav #nav-hud { display: flex; }
+body.modo-nav .barra-superior, body.modo-nav .acciones-inferiores, body.modo-nav .map-style-container { display: none; }
+body.modo-nav .btn-ubicacion { bottom: calc(150px + var(--seguro-abajo)); }
+#nav-top-banner {
+  pointer-events: auto; background: #064e3b; color: #fff; border-radius: 18px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, .4); max-width: 620px; width: 100%; margin: 0 auto;
+}
+.nav-arrow-icon { width: 46px; height: 46px; border-radius: 12px; background: rgba(255, 255, 255, .15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+#nav-flecha { transition: transform .3s; }
+.nav-textos { min-width: 0; }
+#nav-instruccion { font-size: 18px; font-weight: 700; line-height: 1.25; }
+#nav-sub { font-size: 14px; opacity: .85; margin-top: 2px; }
+#nav-bottom-bar {
+  pointer-events: auto; background: #111827; color: #fff; border-radius: 20px; padding: 14px 16px;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  box-shadow: 0 -10px 35px rgba(0, 0, 0, .45); max-width: 620px; width: 100%; margin: 0 auto;
+}
+.hud-metrics { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.speedometer-box { text-align: center; background: rgba(255, 255, 255, .1); padding: 6px 10px; border-radius: 10px; }
+.speedometer-box span { display: block; font-size: 22px; font-weight: 800; color: #38bdf8; }
+.speedometer-box small { font-size: 10px; color: #9ca3af; }
+#nav-tiempo { font-size: 26px; font-weight: 800; color: #34d399; line-height: 1.1; }
+#nav-detalle { font-size: 14px; color: #9ca3af; margin-top: 2px; }
+#nav-combustible { font-size: 12px; color: #fde047; margin-top: 2px; }
+.hud-botones { display: flex; flex-direction: column; gap: 6px; }
+#nav-exit-btn { background: var(--rojo); color: #fff; border: none; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 15px; }
+.btn-hud { background: #374151; color: #fff; border: none; padding: 8px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; }
 
-/* Forzar que solo la tarjeta verde conserve su diseño compacto */
-.directions-control-step {
-    border-radius: 12px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+/* ---------- Alerta de hotspot cercano ---------- */
+.desvio-card-hud {
+  position: fixed; top: calc(110px + var(--seguro-arriba)); left: 50%; z-index: 35; width: calc(100% - 24px); max-width: 520px;
+  transform: translate(-50%, -20px); opacity: 0; pointer-events: none; transition: all .35s ease;
+  background: #0f172a; color: #fff; border-radius: 18px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
 }
-/* Marcador de ubicación en tiempo real */
-.user-location-marker {
-    width: 28px;
-    height: 28px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+.desvio-card-hud.visible { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.desvio-info > strong { display: block; font-size: 17px; margin: 4px 0; }
+.desvio-aves { font-size: 13px; color: #cbd5e1; }
+.desvio-tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #34d399; }
+.rara-tag { color: #b45309; }
+.desvio-card-hud .rara-tag, .toast-rara .rara-tag { color: #fbbf24; }
+.desvio-botones { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.desvio-botones .btn { flex: 1; }
+.desvio-botones .btn-icono { background: #1f2937; color: #fff; }
 
-.user-dot {
-    width: 14px;
-    height: 14px;
-    background-color: #1a73e8;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    position: absolute;
-    z-index: 2;
+/* ---------- Avisos ---------- */
+#toasts {
+  position: fixed; top: calc(70px + var(--seguro-arriba)); left: 50%; transform: translateX(-50%); z-index: 50;
+  display: flex; flex-direction: column; gap: 8px; width: calc(100% - 24px); max-width: 460px; pointer-events: none;
 }
+/* En navegación los avisos van abajo para no tapar la alerta de hotspot ni la instrucción */
+body.modo-nav #toasts { top: auto; bottom: calc(210px + var(--seguro-abajo)); flex-direction: column-reverse; }
+.toast {
+  pointer-events: auto; position: relative; background: #1e293b; color: #fff; border-radius: 14px; padding: 12px 40px 12px 14px;
+  box-shadow: var(--sombra); font-size: 14px; line-height: 1.4; animation: entrar .25s ease;
+}
+.toast-error { background: #7f1d1d; }
+.toast-rara { background: #451a03; border: 1px solid #b45309; }
+.toast a { color: #7dd3fc; }
+.toast-acciones { display: flex; gap: 8px; margin-top: 8px; }
+.toast-acciones button { border: none; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 13px; background: rgba(255, 255, 255, .15); color: #fff; }
+.toast-cerrar { position: absolute; top: 6px; right: 8px; border: none; background: none; color: #cbd5e1; font-size: 20px; }
+@keyframes entrar { from { opacity: 0; transform: translateY(-8px); } }
 
-.user-dot-pulse {
-    width: 28px;
-    height: 28px;
-    background-color: rgba(26, 115, 232, 0.35);
-    border-radius: 50%;
-    position: absolute;
-    animation: pulse-user 2s infinite ease-in-out;
-    z-index: 1;
-}
-
-@keyframes pulse-user {
-    0% { transform: scale(0.6); opacity: 0.8; }
-    50% { transform: scale(1.3); opacity: 0.2; }
-    100% { transform: scale(0.6); opacity: 0.8; }
-}
-/* =========================================
-   NUEVOS ESTILOS AGREGADOS
-   ========================================= */
-
-/* 1. Ocultar pines A y B predeterminados de Mapbox Directions */
-.mapbox-directions-origin,
-.mapbox-directions-destination,
-.mapboxgl-ctrl-directions {
-    display: none !important;
-}
-
-/* 2. Menú circular superior derecho */
-.btn-circle-menu {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    z-index: 20;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-/* 3. Desplegable Búsqueda Predictiva */
-.autocomplete-dropdown {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    margin-top: 5px;
-    max-height: 200px;
-    overflow-y: auto;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-    display: none;
-}
-
-.autocomplete-item {
-    padding: 10px 14px;
-    font-size: 13px;
-    color: #0f172a;
-    border-bottom: 1px solid #f1f5f9;
-    cursor: pointer;
-}
-
-/* 4. Marcador SVG para Bencineras */
-.gas-station-marker {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    transition: transform 0.2s ease;
-}
-
-.gas-station-marker:hover {
-    transform: scale(1.15);
-}
-
-/* 5. Velocímetro y combustible en barra de navegación */
-.speedometer-box {
-    text-align: center;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 6px 10px;
-    border-radius: 10px;
-}
-
-.speedometer-box span {
-    font-size: 20px;
-    font-weight: 800;
-    color: #38bdf8;
-    display: block;
-}
-
-.hud-fuel {
-    font-size: 11px;
-    color: #fde047;
-}
-/* Estilos ajustados para Tarjeta Copec en Mapbox */
-.mapboxgl-popup-content {
-    padding: 12px !important;
-    border-radius: 16px !important;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
-    background: #ffffff !important;
-}
-
-.mapboxgl-popup-close-button {
-    padding: 6px 10px !important;
-    color: #64748b !important;
-    font-size: 18px !important;
-    border-radius: 50% !important;
-}
-
-.mapboxgl-popup-close-button:hover {
-    background: #f1f5f9 !important;
-    color: #0f172a !important;
-}
-
-.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
-    border-top-color: #ffffff !important;
+/* ---------- Pantallas pequeñas ---------- */
+@media (max-width: 520px) {
+  #side-panel { width: 100%; }
+  .pildora { padding: 10px 14px; font-size: 13px; }
+  .map-style-btn span:last-child { font-size: 10px; }
+  .style-icon-box { width: 34px; height: 34px; }
+  .acciones-inferiores { bottom: calc(92px + var(--seguro-abajo)); }
+  #nav-tiempo { font-size: 22px; }
+  #nav-instruccion { font-size: 16px; }
 }
